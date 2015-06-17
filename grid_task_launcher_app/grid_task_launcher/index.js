@@ -8,7 +8,7 @@ var router = express.Router();
 function task_toString(task) {return 'task{' + task.job_id + ',' + task.index + '}';}
 function make_err_obj(err)
 {
-	var o = {excpetion: err.toString()};
+	var o = {exception: err.toString()};
 	return o;
 }
 
@@ -198,5 +198,10 @@ router.use(function timeLog(req, res, next) {
 
 router.post('/LAUNCH_TASK', handleLaunchTask);
 router.post('/KILL_PROCESS_TREE', handleKillProcessTree);
+
+router.all('/', function(request, result) {
+	result.set('Content-Type', 'application/json');
+	result.json(make_err_obj('bad request'));
+});
 
 module.exports = router;
