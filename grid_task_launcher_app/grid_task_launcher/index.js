@@ -138,28 +138,46 @@ function handleLaunchTask(request, result) {
 	var conn_str = lp.db.conn_str;
 	var task = lp.task;
 	console.log(task.node + ' have received dispatch of ' + task_toString(task));
+	function markTaskStart(task) {
+		markTaskStartDB(conn_str, lp.db.sqls['MarkTaskStart'], task);
+	}
+	function markTaskFinished(task, stdout, stderr, onDone, onError) {
+		markTaskFinishedDB(conn_str, lp.db.sqls['MarkTaskEnd'], task, stdout, stderr, onDone, onError);
+	}
 	// get task info from the database
 	getJobTaskInfoDB(conn_str, lp.db.sqls['GetTaskDetail'], task
 	,function() {
+		var cmd = task.cmd;
+		var stdin_file = task.stdin_file;
+		var cookie = task.cookie;
+		delete task["cmd"];
+		delete task['stdin_file'];
+		delete task['cookie'];
+		task.pid = 0;
+		var stdout = '';
+		var stderr = '';
+		
 		var instream = null;
-		if (task.stdin_file && typeof task.stdin_file == 'string' && task.stdin_file.length > 0) {
-			instream = fs.openReadFileStream(task.stdin_file);
+		if (stdin_file && typeof stdin_file == 'string' && stdin_file.length > 0) {
+			instream = fs.openReadFileStream(stdin_file);
 			if (!instream) {
-				onFinalError('error opening stdin file ' + task.stdin_file);
+				task.ret_code = 1;
+				stderr = 'error opening stdin file ' + stdin_file;
+				onFinalError(stderr);
+				markTaskStart(task);
+				markTaskFinished(task, stdout, stderr, notifyDispatcherOnTaskFinished, function(err){console.log(err);});
 				return;
 			}
 		}
 		var exec = require('child_process').exec;
 		var options = {
 		};
-		//console.log('cmd=' + task.cmd);
-		var child = exec(task.cmd, options);
+		//console.log('cmd=' + cmd);
+		var child = exec(cmd, options);
 		if (instream && child.stdin) instream.pipe(child.stdin);
 		task.pid = child.pid
 		onFinalReturn(task);
-		markTaskStartDB(conn_str, lp.db.sqls['MarkTaskStart'], task);
-		var stdout = '';
-		var stderr = '';
+		markTaskStart(task);
 		child.stdout.on('data', function(data){
 			stdout += data.toString();
 		});
@@ -169,12 +187,12 @@ function handleLaunchTask(request, result) {
 		child.on('error', function(err) {
 			task.ret_code = err.code;
 			console.log('child.on_error: ret=' + task.ret_code);
-			markTaskFinishedDB(conn_str, lp.db.sqls['MarkTaskEnd'], task, stdout, stderr, notifyDispatcherOnTaskFinished, console.log);
+			markTaskFinished(task, stdout, stderr, notifyDispatcherOnTaskFinished, function(err){console.log(err);});
 		});
 		child.on('close', function(exitCode) {
 			task.ret_code = exitCode;
 			console.log('child.on_close: ret=' + task.ret_code);
-			markTaskFinishedDB(conn_str, lp.db.sqls['MarkTaskEnd'], task, stdout, stderr, notifyDispatcherOnTaskFinished, console.log);
+			markTaskFinished(task, stdout, stderr, notifyDispatcherOnTaskFinished, function(err){console.log(err);});
 		});
 	}
 	,onFinalError);
