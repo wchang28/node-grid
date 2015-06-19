@@ -1,4 +1,5 @@
 var http = require('http');
+var https = require('https');
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
@@ -27,10 +28,22 @@ var gridDispatcher = require('./grid_dispatcher/');
 gridDispatcher.initialize(config);
 app.use('/grid_dispatcher', gridDispatcher.router);
 
-var server = http.createServer(app);
+var server;
+var secure_http = false;
+if (config.ssl) {
+	secure_http = true;
+	var privateKey  = fs.readFileSync(config.ssl.private_key_file, 'utf8');
+	var certificate = fs.readFileSync(config.ssl.certificate_file, 'utf8');
+	var credentials = {key: privateKey, cert: certificate};
+	server = https.createServer(credentials, app);
+}
+else {
+	secure_http = false;
+	server = http.createServer(app);
+}
 
 server.listen(tcp_port, function() {
 	var host = server.address().address;
 	var port = server.address().port;
-	console.log('Grid dispatcher listening at %s://%s:%s', 'http', host, port);
+	console.log('Grid dispatcher listening at %s://%s:%s', (secure_http ? 'https' : 'http'), host, port);
 });
