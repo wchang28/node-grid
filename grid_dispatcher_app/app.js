@@ -55,9 +55,9 @@ var console_port = (process.argv.length >=5 ? (parseInt(process.argv[4]) ? parse
 var appConsole = express();
 appConsole.use('/console', express.static('console'));
 
-serverConsole = http.createServer(appConsole);
+var serverConsole = http.createServer(appConsole);
 serverConsole.listen(console_port, function() {
 	var host = serverConsole.address().address;
 	var port = serverConsole.address().port;
 	console.log('Grid console listening at %s://%s:%s', 'http', host, port);
-}
+});
