@@ -49,12 +49,12 @@ server.listen(tcp_port, function() {
 	console.log('Grid dispatcher listening at %s://%s:%s', (secure_http ? 'https' : 'http'), host, port);
 });
 
-// process.argv[4] is tcp port
+// process.argv[4] is console port
 var DEFAULT_CONSOLE_PORT = 8080;
 var console_port = (process.argv.length >=5 ? (parseInt(process.argv[4]) ? parseInt(process.argv[4]) : DEFAULT_CONSOLE_PORT) : DEFAULT_CONSOLE_PORT);
 
 var appConsole = express();
-appConsole.use('/console', express.static(path.join(__dirname, 'console')));
+appConsole.use('/grid/console', express.static(path.join(__dirname, 'console')));
 
 var serverConsole = http.createServer(appConsole);
 serverConsole.listen(console_port, function() {
