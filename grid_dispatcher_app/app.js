@@ -4,6 +4,7 @@ var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 var fs = require('fs');
+var path = require('path');
 
 // process.argv[2] is config path
 if (process.argv.length < 3) {
