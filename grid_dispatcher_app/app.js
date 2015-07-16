@@ -54,7 +54,7 @@ var DEFAULT_CONSOLE_PORT = 8080;
 var console_port = (process.argv.length >=5 ? (parseInt(process.argv[4]) ? parseInt(process.argv[4]) : DEFAULT_CONSOLE_PORT) : DEFAULT_CONSOLE_PORT);
 
 var appConsole = express();
-appConsole.use('/console', path.join(__dirname, 'console'));
+appConsole.use('/console', express.static(path.join(__dirname, 'console')));
 
 var serverConsole = http.createServer(appConsole);
 serverConsole.listen(console_port, function() {
