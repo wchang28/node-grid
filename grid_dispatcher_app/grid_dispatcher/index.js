@@ -101,8 +101,11 @@ function handleSubmitJob(request, result) {
 		var xml = makeJobXml(job);
 		var submitToken = (job.submit_token ? job.submit_token : null);
 		parseSubmitJobParams(xml
-		,function(job, job_xml) {dispatcher.submitJob(job, job_xml, submitToken, onFinalReturn, onFinalError);}
-		,onFinalError);
+		,function(newJob, job_xml)	{
+			if (job.description) newJob.description = job.description;
+			if (job.cookie) newJob.cookie = job.cookie;
+			dispatcher.submitJob(newJob, job_xml, submitToken, onFinalReturn, onFinalError);
+		}, onFinalError);
 	} catch(e) {
 		onFinalError(e);
 	}
