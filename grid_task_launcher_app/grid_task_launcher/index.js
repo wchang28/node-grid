@@ -216,6 +216,9 @@ router.use(function timeLog(req, res, next) {
 
 router.post('/LAUNCH_TASK', handleLaunchTask);
 router.post('/KILL_PROCESS_TREE', handleKillProcessTree);
+router.get('/PING', function(request, result) {
+	result.json({});
+});
 
 router.all('/', function(request, result) {
 	result.set('Content-Type', 'application/json');
