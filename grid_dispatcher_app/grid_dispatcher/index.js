@@ -132,6 +132,28 @@ function handleKillJob(request, result) {
 	});
 }
 
+function handleGetJobProgress(request, result) {
+	function onFinalError(err) {
+		console.log('!!! Error: ' + err.toString());
+		result.json(make_err_obj(err));
+	}
+	function onFinalReturn(data) {
+		result.json(data);
+	}
+	getJobIdFromRequest(request, function(err, job_id) {
+		if (err)
+			onFinalError(err);
+		else {
+			dispatcher.getJobProgress(job_id, function(err, data) {
+				if (err)
+					onFinalError(err);
+				else
+					onFinalReturn(data);
+			});
+		}
+	});
+}
+
 function handleGetJobResult(request, result) {
 	function onFinalError(err) {
 		console.log('!!! Error: ' + err.toString());
@@ -160,7 +182,8 @@ router.use(function timeLog(req, res, next) {
 }); 
  
 router.post('/submit_job', handleSubmitJob);
-router.get('/kill_job', handleKillJob); 
+router.get('/kill_job', handleKillJob);
+router.get('/get_job_progress', handleGetJobProgress); 
 router.get('/get_job_result', handleGetJobResult);
 
 router.all('/', function(request, result) {
