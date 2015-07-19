@@ -74,6 +74,7 @@ function makeJobXml(job) {
 	var nodeJob = doc.createElement('job');
 	root.appendChild(nodeJob);
 	if (job.description) nodeJob.setAttribute('description', job.description);
+	if (job.cookie) nodeJob.setAttribute('cookie', job.cookie);
 	var nodeTasks = doc.createElement('tasks');
 	nodeJob.appendChild(nodeTasks);
 	for (var i in job.tasks) {
