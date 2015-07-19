@@ -96,12 +96,16 @@ function handleSubmitJob(request, result) {
 	function onFinalReturn(job_id) {
 		result.json({job_id: job_id});
 	}
-	var job = request.body;
-	var xml = makeJobXml(job);
-	var submitToken = (job.submit_token ? job.submit_token : null);
-	parseSubmitJobParams(xml
-	,function(job, job_xml) {dispatcher.submitJob(job, job_xml, submitToken, onFinalReturn, onFinalError);}
-	,onFinalError);
+	try {
+		var job = request.body;
+		var xml = makeJobXml(job);
+		var submitToken = (job.submit_token ? job.submit_token : null);
+		parseSubmitJobParams(xml
+		,function(job, job_xml) {dispatcher.submitJob(job, job_xml, submitToken, onFinalReturn, onFinalError);}
+		,onFinalError);
+	} catch(e) {
+		onFinalError(e);
+	}
 }
 
 function getJobIdFromRequest(request, onDone) {
@@ -125,12 +129,16 @@ function handleKillJob(request, result) {
 	function onFinalReturn() {
 		result.json({});
 	}
-	getJobIdFromRequest(request, function(err, job_id) {
-		if (err)
-			onFinalError(err);
-		else
-			dispatcher.killJob(job_id, onFinalReturn, onFinalError);
-	});
+	try {
+		getJobIdFromRequest(request, function(err, job_id) {
+			if (err)
+				onFinalError(err);
+			else
+				dispatcher.killJob(job_id, onFinalReturn, onFinalError);
+		});
+	} catch(e) {
+		onFinalError(e);
+	}
 }
 
 function handleGetJobProgress(request, result) {
@@ -141,18 +149,22 @@ function handleGetJobProgress(request, result) {
 	function onFinalReturn(data) {
 		result.json(data);
 	}
-	getJobIdFromRequest(request, function(err, job_id) {
-		if (err)
-			onFinalError(err);
-		else {
-			dispatcher.getJobProgress(job_id, function(err, data) {
-				if (err)
-					onFinalError(err);
-				else
-					onFinalReturn(data);
-			});
-		}
-	});
+	try {
+		getJobIdFromRequest(request, function(err, job_id) {
+			if (err)
+				onFinalError(err);
+			else {
+				dispatcher.getJobProgress(job_id, function(err, data) {
+					if (err)
+						onFinalError(err);
+					else
+						onFinalReturn(data);
+				});
+			}
+		});
+	} catch(e) {
+		onFinalError(e);
+	}
 }
 
 function handleGetJobResult(request, result) {
@@ -163,18 +175,37 @@ function handleGetJobResult(request, result) {
 	function onFinalReturn(data) {
 		result.json(data);
 	}
-	getJobIdFromRequest(request, function(err, job_id) {
-		if (err)
-			onFinalError(err);
-		else {
-			dispatcher.getJobResult(job_id, function(err, data) {
-				if (err)
-					onFinalError(err);
-				else
-					onFinalReturn(data);
-			});
-		}
-	});
+	try {
+		getJobIdFromRequest(request, function(err, job_id) {
+			if (err)
+				onFinalError(err);
+			else {
+				dispatcher.getJobResult(job_id, function(err, data) {
+					if (err)
+						onFinalError(err);
+					else
+						onFinalReturn(data);
+				});
+			}
+		});
+	} catch(e) {
+		onFinalError(e);
+	}
+}
+
+function handleGetGridState(request, result) {
+	function onFinalError(err) {
+		console.log('!!! Error: ' + err.toString());
+		result.json(make_err_obj(err));
+	}
+	function onFinalReturn(data) {
+		result.json(data);
+	}
+	try {
+		onFinalReturn(dispatcher.getGridState());
+	} catch(e) {
+		onFinalError(e);
+	}
 }
 
 router.use(function timeLog(req, res, next) { 
@@ -186,6 +217,7 @@ router.post('/submit_job', handleSubmitJob);
 router.get('/kill_job', handleKillJob);
 router.get('/get_job_progress', handleGetJobProgress); 
 router.get('/get_job_result', handleGetJobResult);
+router.get('/get_grid_state', handleGetGridState);
 
 router.all('/', function(request, result) {
 	result.set('Content-Type', 'application/json');
