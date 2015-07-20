@@ -43,7 +43,7 @@ GO
 USE [Tools]
 GO
 
-/****** Object:  Table [dbo].[grid_jobs]    Script Date: 7/20/2015 8:37:02 AM ******/
+/****** Object:  Table [dbo].[grid_jobs]    Script Date: 7/20/2015 8:48:37 AM ******/
 SET ANSI_NULLS ON
 GO
 
@@ -56,6 +56,7 @@ GO
 CREATE TABLE [dbo].[grid_jobs](
 	[job_id] [bigint] IDENTITY(1,1) NOT NULL,
 	[description] [varchar](250) NULL,
+	[cookie] [varchar](250) NULL,
 	[user_id] [int] NOT NULL,
 	[submit_time] [datetime] NOT NULL,
 	[aborted] [bit] NOT NULL,
@@ -105,6 +106,7 @@ as
 (
 	select
 	jobs.[description]
+	,jobs.[cookie]
 	,jobs.[user_id]
 	,jobs.[submit_time]
 	,[status]=iif(jobs.[aborted]=1,'ABORTED',iif(stat.[num_tasks]=stat.[num_tasks_finished],'FINISHED', iif(stat.[num_tasks]=stat.[num_tasks_queued], 'SUBMITTED', 'STARTED')))
@@ -116,6 +118,7 @@ as
 select
 stat2.[job_id]
 ,stat2.[description]
+,stat2.[cookie]
 ,stat2.[user_id]
 ,stat2.[submit_time]
 ,stat2.[status]
@@ -418,6 +421,7 @@ BEGIN
 	declare @xml xml
 	set @xml=@job_xml
 	declare @description varchar(250)
+	declare @cookie varchar(250)
 	declare @job_id bigint
 
 	-- TODO:
@@ -427,12 +431,13 @@ BEGIN
 	---------------------------------
 
 	select
-	@description=a.b.value('@description', 'varchar(250)') 
+	@description=a.b.value('@description', 'varchar(250)')
+	,@cookie=a.b.value('@cookie', 'varchar(250)') 
 	FROM @xml.nodes('/job') a(b)
 	
 	insert into [dbo].[grid_jobs]
-	([description],[user_id],[submit_time],[aborted])
-	values (@description, @user_id, getdate(), 0)
+	([description],[cookie],[user_id],[submit_time],[aborted])
+	values (@description, @cookie, @user_id, getdate(), 0)
 
 	set @job_id = @@IDENTITY
 
