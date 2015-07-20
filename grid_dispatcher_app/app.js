@@ -5,6 +5,7 @@ var app = express();
 var bodyParser = require('body-parser');
 var fs = require('fs');
 var path = require('path');
+var global = require('./global');
 
 // process.argv[2] is config path
 if (process.argv.length < 3) {
@@ -15,9 +16,15 @@ var gridConfigFilePath = process.argv[2];
 console.log('grid config file path: ' + gridConfigFilePath);
 var config = JSON.parse(fs.readFileSync(gridConfigFilePath, 'utf8'));
 
+global.msgBrokerConfig = config["msg_broker"];
+
 // process.argv[3] is tcp port
 var DEFAULT_PORT = 279;
 var tcp_port = (process.argv.length >=4 ? (parseInt(process.argv[3]) ? parseInt(process.argv[3]) : DEFAULT_PORT) : DEFAULT_PORT);
+
+global.dispatcher = {};
+global.dispatcher.port = tcp_port;
+global.dispatcher.rootPath = '/grid_dispatcher';
 
 app.use(bodyParser.json());
 app.use(function timeLog(req, res, next) {
@@ -43,6 +50,8 @@ else {
 	server = http.createServer(app);
 }
 
+global.dispatcher.protocol = (secure_http ? 'https://' : 'http://');
+
 server.listen(tcp_port, function() {
 	var host = server.address().address;
 	var port = server.address().port;
@@ -55,6 +64,7 @@ var console_port = (process.argv.length >=5 ? (parseInt(process.argv[4]) ? parse
 
 var appConsole = express();
 appConsole.use('/grid/console', express.static(path.join(__dirname, 'console')));
+appConsole.use('/grid/console_ws', require('./console_ws/').router);
 
 var serverConsole = http.createServer(appConsole);
 serverConsole.listen(console_port, function() {
