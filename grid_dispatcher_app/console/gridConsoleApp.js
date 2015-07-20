@@ -73,7 +73,7 @@
 				var dispatcherConfig = config["dispatcher"];
 				$scope.dispatcherRootPathUrl = dispatcherConfig["protocol"] + location.hostname + ':' + dispatcherConfig['port'].toString() + dispatcherConfig["rootPath"];
 				console.log($scope.dispatcherRootPathUrl);
-				console.log(config["msgBrokerConfig"]);
+				console.log(JSON.stringify(config["msgBrokerConfig"]));
 				getGridState(function(err, gridState) {
 					if (err)
 						alert(err.toString());
