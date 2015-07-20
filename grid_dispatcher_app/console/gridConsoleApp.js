@@ -73,11 +73,12 @@
 				var dispatcherConfig = config["dispatcher"];
 				$scope.dispatcherRootPathUrl = dispatcherConfig["protocol"] + location.hostname + ':' + dispatcherConfig['port'].toString() + dispatcherConfig["rootPath"];
 				console.log($scope.dispatcherRootPathUrl);
+				console.log(config["msgBrokerConfig"]);
 				getGridState(function(err, gridState) {
 					if (err)
 						alert(err.toString());
 					else {
-						//console.log(JSON.stringify(gridState));
+						console.log(JSON.stringify(gridState));
 						$scope.gridState = gridState;
 						connectToMsgBorker(config["msgBrokerConfig"]);
 					}
