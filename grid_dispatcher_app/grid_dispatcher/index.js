@@ -212,7 +212,7 @@ function handleGetGridState(request, result) {
 }
 
 router.use(function timeLog(req, res, next) { 
-	//console.log('an incomming request @ /grid_dispatcher. Time: ', Date.now()); 
+	console.log('an incomming request @ /grid_dispatcher. Time: ', Date.now()); 
  	next(); 
 }); 
  
