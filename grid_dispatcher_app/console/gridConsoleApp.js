@@ -46,7 +46,7 @@
 			}
 		};
 		function connectToMsgBorker(msgBrokerConfig) {
-			var url = msgBrokerConfig['url'];
+			var url = msgBrokerConfig['urlClient'];
 			var eventTopic = msgBrokerConfig["event_topic"];
 			var destinations = {};
 			destinations[eventTopic] = {"headers":{}};
