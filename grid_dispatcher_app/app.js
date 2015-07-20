@@ -36,14 +36,15 @@ var gridDispatcher = require('./grid_dispatcher/');
 gridDispatcher.initialize(config);
 app.use('/grid_dispatcher', gridDispatcher.router);
 
-var server;
+var server = null;
 var secure_http = false;
+var sslCredentials = null;
 if (config.ssl) {
 	secure_http = true;
 	var privateKey  = fs.readFileSync(config.ssl.private_key_file, 'utf8');
 	var certificate = fs.readFileSync(config.ssl.certificate_file, 'utf8');
-	var credentials = {key: privateKey, cert: certificate};
-	server = https.createServer(credentials, app);
+	sslCredentials = {key: privateKey, cert: certificate};
+	server = https.createServer(sslCredentials, app);
 }
 else {
 	secure_http = false;
@@ -66,9 +67,9 @@ var appConsole = express();
 appConsole.use('/grid/console', express.static(path.join(__dirname, 'console')));
 appConsole.use('/grid/console_ws', require('./console_ws/').router);
 
-var serverConsole = http.createServer(appConsole);
+var serverConsole = (secure_http ? https.createServer(sslCredentials, appConsole) : http.createServer(appConsole));
 serverConsole.listen(console_port, function() {
 	var host = serverConsole.address().address;
 	var port = serverConsole.address().port;
-	console.log('Grid console listening at %s://%s:%s', 'http', host, port);
+	console.log('Grid console listening at %s://%s:%s', (secure_http ? 'https' : 'http'), host, port);
 });
