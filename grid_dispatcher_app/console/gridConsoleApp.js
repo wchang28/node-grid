@@ -43,18 +43,17 @@
 			var ret = {"num_tasks": queue["count"], "num_tasks_by_job": []};
 			var ar = ret["num_tasks_by_job"];
 			for (var job_id in queue["count_by_jobid"]) {
-				ar.push({"job_id": job_id, "num_tasks": queue["count_by_jobid"][job_id]});
+				ar.push({"job_id": parseInt(job_id), "num_tasks": queue["count_by_jobid"][job_id]};
 			}
-			ar.sort(function (a, b) {
-				var job_id_a = parseInt(a["job_id"]);
-				var job_id_b = parseInt(b["job_id"]);
-				return job_id_a - job_id_b;
-			});
+			ar.sort(function (a, b) {return a["job_id"] - b["job_id"];});	// ascending by job id
 			return ret;
 		}
 		function makeTrackedJobsView(trackedJobs) {
-			// TODO:
-			return null;
+			var ret = [];
+			for (var job_id in trackedJobs)
+				ret.push(trackedJobs[job_id]);
+			ret.sort(function (a, b) {return b["job_id"] - a["job_id"];});	// descending by job id
+			return ret;
 		}
 		function updateJobStatus(jobProgress) {
 			// TODO:
@@ -124,6 +123,7 @@
 						$scope.nodesStatus = gridState["nodesStatus"];
 						$scope.queueStatusView = makeQueueStatusView(gridState["queue"]);
 						$scope.trackedJobsView = makeTrackedJobsView(gridState["trackedJobs"]);
+						console.log(JSON.stringify($scope.trackedJobsView);
 						connectToMsgBorker(config["msgBrokerConfig"]);
 					}
 				});
