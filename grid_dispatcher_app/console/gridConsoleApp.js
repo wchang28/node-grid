@@ -71,8 +71,8 @@
 						$scope.nodesStatus = msg.content;
 						break;
 					case "ON_QUEUE_CHANGED":
-						console.log(JSON.stringify(msg));
 						$scope.queueStatusView = makeQueueStatusView(msg.content);
+						console.log(JSON.stringify($scope.queueStatusView));
 						break;
 					case "ON_JOB_STATUS_CHANGED":
 						console.log(JSON.stringify(msg));
