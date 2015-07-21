@@ -3,8 +3,10 @@
 	app.controller('GridConsoleController', function($scope, $filter, $http) {
 		$scope.msgBroker = null;
 		$scope.dispatcherRootPathUrl = null;
-		$scope.gridState = null;
-		
+		$scope.nodesStatus = null;
+		$scope.queueStatusView = null;
+		$scope.trackedJobsView = null;
+				
 		function getGridDispatherConfig(onDone) {
 			var url = '/grid/console_ws/get_dispatcher_config';
 			//console.log(url);
@@ -37,21 +39,48 @@
 				if (typeof onDone === 'function') onDone(data, null);
 			})
 		}
+		function makeQueueStatusView(queue) {
+			var ret = {"num_tasks": queue["count"], "num_tasks_by_job": []};
+			var ar = ret["num_tasks_by_job"];
+			for (var job_id in queue["count_by_jobid"]) {
+				ar.push({"job_id": job_id, "num_tasks": queue["count_by_jobid"][job_id]});
+			}
+			ar.sort(function (a, b) {
+				var job_id_a = parseInt(a["job_id"]);
+				var job_id_b = parseInt(b["job_id"]);
+				return job_id_a - job_id_b;
+			});
+			return ret;
+		}
+		function makeTrackedJobsView(trackedJobs) {
+			// TODO:
+			return null;
+		}
+		function updateJobStatus(jobProgress) {
+			// TODO:
+		}
+		function removeJob(job_id) {
+			// TODO:
+		}
 		$scope.onBrokerMessage = function(message) {
 			if (message.body && message.body.length > 0) {
 				var msg = JSON.parse(message.body);
 				switch(msg.method) {
 					case "ON_NODES_STATUS_CHANGED":
 						console.log(JSON.stringify(msg));
+						$scope.nodesStatus = msg.content;
 						break;
 					case "ON_QUEUE_CHANGED":
 						console.log(JSON.stringify(msg));
+						$scope.queueStatusView = makeQueueStatusView(msg.content);
 						break;
 					case "ON_JOB_STATUS_CHANGED":
 						console.log(JSON.stringify(msg));
+						updateJobStatus(msg.content);
 						break;
 					case "ON_JOB_REMOVED_FROM_TRACKING":
 						console.log(JSON.stringify(msg));
+						removeJob(msg.content.job_id);
 						break;
 				}
 				// TODO:
@@ -92,7 +121,9 @@
 						alert(err.toString());
 					else {
 						console.log(JSON.stringify(gridState));
-						$scope.gridState = gridState;
+						$scope.nodesStatus = gridState["nodesStatus"];
+						$scope.queueStatusView = makeQueueStatusView(gridState["queue"]);
+						$scope.trackedJobsView = makeTrackedJobsView(gridState["trackedJobs"]);
 						connectToMsgBorker(config["msgBrokerConfig"]);
 					}
 				});
