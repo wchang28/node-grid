@@ -43,7 +43,7 @@
 			var ret = {"num_tasks": queue["count"], "num_tasks_by_job": []};
 			var ar = ret["num_tasks_by_job"];
 			for (var job_id in queue["count_by_jobid"]) {
-				ar.push({"job_id": parseInt(job_id), "num_tasks": queue["count_by_jobid"][job_id]};
+				ar.push({"job_id": parseInt(job_id), "num_tasks": queue["count_by_jobid"][job_id]});
 			}
 			ar.sort(function (a, b) {return a["job_id"] - b["job_id"];});	// ascending by job id
 			return ret;
