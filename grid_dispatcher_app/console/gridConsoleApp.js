@@ -100,7 +100,7 @@
 			var loginOptions = msgBrokerConfig['login_options'];
 			var options = msgBrokerConfig['broker_options'];
 			var tlsOptions = msgBrokerConfig['tlsOptions'];
-			$scope.msgBroker = new StompMsgBroker(function() {return Stomp.client(url, null, tlsOptions);}, options, loginOptions, destinations); 
+			$scope.msgBroker = new StompMsgBroker(function() {return Stomp.client(url, null, tlsOptions);}, options, loginOptions, destinations);
 			var broker = $scope.msgBroker;
 			broker.onsubscribe = function(destination, headers, subscription) {
 				console.log('subscribed: ' + destination + ' ---> ' + subscription.id);
