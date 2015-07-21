@@ -123,7 +123,7 @@
 						$scope.nodesStatus = gridState["nodesStatus"];
 						$scope.queueStatusView = makeQueueStatusView(gridState["queue"]);
 						$scope.trackedJobsView = makeTrackedJobsView(gridState["trackedJobs"]);
-						console.log(JSON.stringify($scope.trackedJobsView);
+						console.log(JSON.stringify($scope.trackedJobsView));
 						connectToMsgBorker(config["msgBrokerConfig"]);
 					}
 				});
