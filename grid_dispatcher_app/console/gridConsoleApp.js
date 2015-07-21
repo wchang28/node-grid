@@ -40,7 +40,20 @@
 		$scope.onBrokerMessage = function(message) {
 			if (message.body && message.body.length > 0) {
 				var msg = JSON.parse(message.body);
-				console.log(JSON.stringify(msg));
+				switch(msg.method) {
+					case "ON_NODES_STATUS_CHANGED":
+						console.log(JSON.stringify(msg));
+						break;
+					case "ON_QUEUE_CHANGED":
+						console.log(JSON.stringify(msg));
+						break;
+					case "ON_JOB_STATUS_CHANGED":
+						console.log(JSON.stringify(msg));
+						break;
+					case "ON_JOB_REMOVED_FROM_TRACKING":
+						console.log(JSON.stringify(msg));
+						break;
+				}
 				// TODO:
 				$scope.$apply();
 			}
