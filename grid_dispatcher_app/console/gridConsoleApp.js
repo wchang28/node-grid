@@ -3,7 +3,7 @@
 	app.controller('GridConsoleController', function($scope, $filter, $http) {
 		$scope.msgBroker = null;
 		$scope.dispatcherRootPathUrl = null;
-		$scope.nodesStatus = null;
+		$scope.nodesStatusView = null;
 		$scope.queueStatusView = null;
 		$scope.trackedJobsView = null;
 				
@@ -39,6 +39,12 @@
 				if (typeof onDone === 'function') onDone(data, null);
 			})
 		}
+		function makeNodesStatusView(nodesStatus) {
+			var ret = {"num_nodes": nodesStatus["num_nodes"], "total_cpus": nodesStatus["total_cpus"],"available_cpus": nodesStatus["available_cpus"], "nodes": []};
+			for (var node in nodesStatus["nodes"])
+				ret["nodes"].push(nodesStatus["nodes"][node]);
+			return ret;
+		}
 		function makeQueueStatusView(queue) {
 			var ret = {"num_tasks": queue["count"], "num_tasks_by_job": []};
 			var ar = ret["num_tasks_by_job"];
@@ -67,7 +73,7 @@
 				switch(msg.method) {
 					case "ON_NODES_STATUS_CHANGED":
 						console.log(JSON.stringify(msg));
-						$scope.nodesStatus = msg.content;
+						$scope.nodesStatusView = makeNodesStatusView(msg.content);
 						break;
 					case "ON_QUEUE_CHANGED":
 						$scope.queueStatusView = makeQueueStatusView(msg.content);
@@ -120,7 +126,7 @@
 						alert(err.toString());
 					else {
 						console.log(JSON.stringify(gridState));
-						$scope.nodesStatus = gridState["nodesStatus"];
+						$scope.nodesStatusView = makeNodesStatusView(gridState["nodesStatus"]);
 						$scope.queueStatusView = makeQueueStatusView(gridState["queue"]);
 						$scope.trackedJobsView = makeTrackedJobsView(gridState["trackedJobs"]);
 						console.log(JSON.stringify($scope.trackedJobsView));

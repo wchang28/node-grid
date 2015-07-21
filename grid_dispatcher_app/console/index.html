@@ -22,7 +22,20 @@
 				</div>
 				<div class="panel panel-default">
 					<div class="panel-heading">Jobs</div>
-					<div class="panel-body">Panel Content</div>
+					<div class="panel-body">
+						<table>
+							<th>
+								<td>Node</td>
+								<td>Total CPUs</td>
+								<td>Available CPUs</td>
+							</th>
+							<tr ng-repeat="node in nodesStatusView['nodes']">
+								<td>{{ node.name }}</td>
+								<td>{{ node.num_cpus }}</td>
+								<td>{{ node.available_cpus }}</td>
+							</tr>
+						</table>
+					</div>
 				</div>
 			</div>
 		</div>
