@@ -101,14 +101,14 @@
 			})		
 		}
 		$scope.killJob = function(job_id) {
-			//if (confirm('Are you sure you want kill job ' + job_id + ' ?')) {
+			if (confirm('Are you sure you want kill job ' + job_id + ' ?')) {
 				killJobImpl(job_id, function(err, data) {
 					if (err)
 						alert(err.toString());
 					else
 						console.log(JSON.stringify(data));
 				});
-			//}
+			}
 		};
 		$scope.onBrokerMessage = function(message) {
 			if (message.body && message.body.length > 0) {

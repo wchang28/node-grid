@@ -134,7 +134,7 @@ function handleKillJob(request, result) {
 	}
 	try {
 		getJobIdFromRequest(request, function(err, job_id) {
-			console.log('!!! KILL: getting a kill job request job_id=' + job_id);
+			console.log('KILL: getting a kill job request job_id=' + job_id);
 			if (err)
 				onFinalError(err);
 			else
