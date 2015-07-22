@@ -17,7 +17,7 @@ var job = {
 	,"tasks":[]
 };
 var num_tasks = 100;
-var cmd = "echo Hi from Wen Chang";
+var cmd = "echo Hi from the Grid";
 for (var i = 0; i < num_tasks; i++) {
 	job.tasks.push({"cmd": cmd, "cookie": (i+1).toString()});
 }
