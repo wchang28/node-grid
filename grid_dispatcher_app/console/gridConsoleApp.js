@@ -62,10 +62,26 @@
 			return ret;
 		}
 		function updateJobStatus(jobProgress) {
-			// TODO:
+			if ($scope.trackedJobsView) {
+				var job_id = jobProgress.job_id;
+				for (var i in $scope.trackedJobsView) {
+					if ($scope.trackedJobsView[i].job_id == job_id) {
+						$scope.trackedJobsView[i] = jobProgress;
+						return;
+					}
+				}
+				$scope.trackedJobsView.unshift(jobProgress);
+			}
 		}
 		function removeJob(job_id) {
-			// TODO:
+			if ($scope.trackedJobsView) {
+				for (var i in $scope.trackedJobsView) {
+					if ($scope.trackedJobsView[i].job_id == job_id) {
+						$scope.trackedJobsView.splice(i, 1);
+						return;
+					}
+				}
+			}
 		}
 		$scope.onBrokerMessage = function(message) {
 			if (message.body && message.body.length > 0) {
@@ -80,11 +96,11 @@
 						//console.log(JSON.stringify($scope.queueStatusView));
 						break;
 					case "ON_JOB_STATUS_CHANGED":
-						console.log(JSON.stringify(msg));
+						//console.log(JSON.stringify(msg));
 						updateJobStatus(msg.content);
 						break;
 					case "ON_JOB_REMOVED_FROM_TRACKING":
-						console.log(JSON.stringify(msg));
+						//console.log(JSON.stringify(msg));
 						removeJob(msg.content.job_id);
 						break;
 				}
@@ -118,8 +134,8 @@
 				//console.log(JSON.stringify(config));
 				var dispatcherConfig = config["dispatcher"];
 				$scope.dispatcherRootPathUrl = dispatcherConfig["protocol"] + location.hostname + ':' + dispatcherConfig['port'].toString() + dispatcherConfig["rootPath"];
-				console.log($scope.dispatcherRootPathUrl);
-				console.log(JSON.stringify(config["msgBrokerConfig"]));
+				//console.log($scope.dispatcherRootPathUrl);
+				//console.log(JSON.stringify(config["msgBrokerConfig"]));
 				getGridState(function(err, gridState) {
 					if (err)
 						alert(err.toString());

@@ -2,7 +2,6 @@ var http = require('http');
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
-var fs = require('fs');
 
 // process.argv[2] is tcp port
 var DEFAULT_PORT = 277;

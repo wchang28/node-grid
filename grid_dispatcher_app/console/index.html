@@ -4,6 +4,7 @@
 	<title>Grid Dashboard</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="Cache-Control" content="no-store" />
 	<!-- have IE 11 not asking for browserconfig.xml -->
 	<meta name="msapplication-config" content="none" />
 	<!-- Bootstrap Core CSS -->
@@ -64,8 +65,8 @@
 										<td>{{ jp.description }}</td>
 										<td>{{ jp.cookie }}</td>
 										<td>{{ jp.status }}</td>
-										<td>{{ jp.num_tasks_finished }}+'/'+{{ jp.num_tasks }}</td>
-										<td>{{ jp.complete_pct }}</td>
+										<td>{{ jp.num_tasks_finished +'/'+ jp.num_tasks }}</td>
+										<td>{{ jp.complete_pct.toFixed(2) + '%' }}</td>
 									</tr>
 								</tbody>
 							</table>
