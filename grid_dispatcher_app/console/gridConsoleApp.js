@@ -1,6 +1,7 @@
 (function() {
 	var app = angular.module('GridConsoleApp', []);
 	app.controller('GridConsoleController', function($scope, $filter, $http) {
+		$scope.hostname = location.hostname;
 		$scope.msgBroker = null;
 		$scope.dispatcherRootPathUrl = null;
 		$scope.nodesStatusView = null;
