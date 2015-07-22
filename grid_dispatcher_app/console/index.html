@@ -73,6 +73,7 @@
 												<th>Status</th>
 												<th>Completion</th>
 												<th>%</th>
+												<th>Actions</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -83,6 +84,7 @@
 												<td>{{ jp.status }}</td>
 												<td>{{ jp.num_tasks_finished +'/'+ jp.num_tasks }}</td>
 												<td>{{ jp.complete_pct.toFixed(2) + '%' }}</td>
+												<td><a href="#" ng-click="killJob(jp.job_id)">Kill</a></td>
 											</tr>
 										</tbody>
 									</table>

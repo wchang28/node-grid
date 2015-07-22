@@ -84,6 +84,9 @@
 				}
 			}
 		}
+		$scope.killJob = function(job_id) {
+			alert('killing job ' + job_id);
+		};
 		$scope.onBrokerMessage = function(message) {
 			if (message.body && message.body.length > 0) {
 				var msg = JSON.parse(message.body);
