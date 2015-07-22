@@ -72,12 +72,12 @@
 				var msg = JSON.parse(message.body);
 				switch(msg.method) {
 					case "ON_NODES_STATUS_CHANGED":
-						console.log(JSON.stringify(msg));
+						//console.log(JSON.stringify(msg));
 						$scope.nodesStatusView = makeNodesStatusView(msg.content);
 						break;
 					case "ON_QUEUE_CHANGED":
 						$scope.queueStatusView = makeQueueStatusView(msg.content);
-						console.log(JSON.stringify($scope.queueStatusView));
+						//console.log(JSON.stringify($scope.queueStatusView));
 						break;
 					case "ON_JOB_STATUS_CHANGED":
 						console.log(JSON.stringify(msg));
@@ -88,7 +88,6 @@
 						removeJob(msg.content.job_id);
 						break;
 				}
-				// TODO:
 				$scope.$apply();
 			}
 		};
