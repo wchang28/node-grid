@@ -35,6 +35,11 @@ app.use(function timeLog(req, res, next) {
 var gridDispatcher = require('./grid_dispatcher/');
 gridDispatcher.initialize(config);
 app.use('/grid_dispatcher', gridDispatcher.router);
+app.use(function timeLog(req, res, next) {
+	//console.log('an incomming request @ ./. Time: ', Date.now());
+	//res.header("Access-Control-Allow-Origin", "*");
+	next();
+});
 
 var server = null;
 var secure_http = false;
@@ -66,6 +71,12 @@ var console_port = (process.argv.length >=5 ? (parseInt(process.argv[4]) ? parse
 var appConsole = express();
 appConsole.use('/grid/console', express.static(path.join(__dirname, 'console')));
 appConsole.use('/grid/console_ws', require('./console_ws/').router);
+
+appConsole.use(function timeLog(req, res, next) {
+	//console.log('an incomming request @ ./. Time: ', Date.now());
+	res.header("Access-Control-Allow-Origin", "*");
+	next();
+});
 
 var serverConsole = (secure_http ? https.createServer(sslCredentials, appConsole) : http.createServer(appConsole));
 serverConsole.listen(console_port, function() {
