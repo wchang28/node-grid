@@ -140,11 +140,11 @@
 					if (err)
 						alert(err.toString());
 					else {
-						console.log(JSON.stringify(gridState));
+						//console.log(JSON.stringify(gridState));
 						$scope.nodesStatusView = makeNodesStatusView(gridState["nodesStatus"]);
 						$scope.queueStatusView = makeQueueStatusView(gridState["queue"]);
 						$scope.trackedJobsView = makeTrackedJobsView(gridState["trackedJobs"]);
-						console.log(JSON.stringify($scope.trackedJobsView));
+						//console.log(JSON.stringify($scope.trackedJobsView));
 						connectToMsgBorker(config["msgBrokerConfig"]);
 					}
 				});
