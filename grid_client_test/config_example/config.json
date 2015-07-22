@@ -1,0 +1,28 @@
+{
+	"msg_broker":
+	{
+		"url": "@@MsgBrokerUrl@@"
+		,"tlsOptions":
+		{
+			"rejectUnauthorized": false
+		}
+		,"options":
+		{
+			"outgoingHeartBeatMS": 10000
+			,"heartBeatScaleFactor": 0.8
+		}
+		,"connectHeaders":
+		{
+			"login": "@@MsgBrokerUserName@@"
+			,"passcode": "@@MsgBrokerPassword@@"
+		}
+	}
+	,"gridEventTopic": "/topic/grid_events"
+	,"dispatcherConfig":
+	{
+		"protocol": "http"
+		,"hostname": "@@DispatcherHostName@@"
+		,"port": 279
+		,"homePath": "/grid_dispatcher/"
+	}
+}
