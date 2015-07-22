@@ -42,7 +42,8 @@
 												<th>IP</th>
 												<th>Port</th>
 												<th>Use IP</th>
-												<th>CPU Utilization</th>
+												<th>CPU Usage</th>
+												<th>Utilization</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -51,7 +52,8 @@
 												<td>{{ node.ip }}</td>
 												<td>{{ node.port }}</td>
 												<td>{{ node.use_ip }}</td>
-												<td>{{ node.num_cpus - node.available_cpus}}/{{node.num_cpus}} = {{ ((node.num_cpus - node.available_cpus)*100.0/node.num_cpus).toFixed(2) }}%</td>
+												<td>{{ node.num_cpus - node.available_cpus}}/{{node.num_cpus }}</td>
+												<td>{{ ((node.num_cpus - node.available_cpus)*100.0/node.num_cpus).toFixed(2) }}%</td>
 											</tr>
 										</tbody>
 									</table>
