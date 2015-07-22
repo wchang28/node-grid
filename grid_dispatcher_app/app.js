@@ -27,13 +27,12 @@ global.dispatcher.port = tcp_port;
 global.dispatcher.rootPath = '/grid_dispatcher';
 
 app.use(bodyParser.json());
-/*
 app.use(function timeLog(req, res, next) {
 	//console.log('an incomming request @ ./. Time: ', Date.now());
-	res.header("Access-Control-Allow-Origin", "*");
+	//res.header("Access-Control-Allow-Origin", "*");
 	next();
 });
-*/
+
 var gridDispatcher = require('./grid_dispatcher/');
 gridDispatcher.initialize(config);
 app.use('/grid_dispatcher', gridDispatcher.router);
