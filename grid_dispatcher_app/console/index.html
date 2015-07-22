@@ -32,7 +32,7 @@
 				<div class="col-sm-8">
 					<div class="panel-group">
 						<div class="panel panel-success">
-							<div class="panel-heading">Nodes [{{nodesStatusView['num_nodes']}} node(s), {{nodesStatusView['total_cpus']-nodesStatusView['available_cpus']}}/{{nodesStatusView['total_cpus']}}]</div>
+							<div class="panel-heading">Nodes [{{nodesStatusView['num_nodes']}} node(s), {{nodesStatusView['total_cpus']-nodesStatusView['available_cpus']}}/{{nodesStatusView['total_cpus']}} = %]</div>
 							<div class="panel-body">
 								<div class="table-responsive"> 
 									<table class="table table-striped table-bordered table-condensed">
@@ -50,8 +50,8 @@
 												<td>{{ node.name }}</td>
 												<td>{{ node.ip }}</td>
 												<td>{{ node.port }}</td>
-												<td>{{ node.num_cpus - node.available_cpus}}/{{node.available_cpus}}</td>
-												<td>{{ ((node.num_cpus - node.available_cpus)*100.0/node.available_cpus).toFixed(2) }}%</td>
+												<td>{{ node.num_cpus - node.available_cpus}}/{{node.num_cpus}}</td>
+												<td>{{ ((node.num_cpus - node.available_cpus)*100.0/node.num_cpus).toFixed(2) }}%</td>
 											</tr>
 										</tbody>
 									</table>
