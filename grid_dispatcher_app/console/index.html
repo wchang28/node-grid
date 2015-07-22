@@ -22,87 +22,92 @@
 </head>
 <body ng-app="GridConsoleApp" ng-controller="GridConsoleController">
 <div class="container">
-	<div class="row" style="margin-top:20px;">
-		<div class="col-sm-8" style="background-color:lavender;">
-			<div class="panel-group">
-				<div class="panel panel-default">
-					<div class="panel-heading">Nodes</div>
-					<div class="panel-body">
-						<div class="table-responsive"> 
-							<table class="table table-striped table-bordered table-condensed">
-								<thead>
-									<tr>
-										<th>Node</th>
-										<th>IP</th>
-										<th>Port</th>
-										<th>Total CPUs</th>
-										<th>Available CPUs</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr ng-repeat="node in nodesStatusView['nodes']">
-										<td>{{ node.name }}</td>
-										<td>{{ node.ip }}</td>
-										<td>{{ node.port }}</td>
-										<td>{{ node.num_cpus }}</td>
-										<td>{{ node.available_cpus }}</td>
-									</tr>
-								</tbody>
-							</table>
+	<div class="panel panel-default">
+		<div class="panel-heading">Grid Dashboard</div>
+		<div class="panel panel-primary">
+			<div class="row" style="margin-top:20px;">
+				<div class="col-sm-8" style="background-color:lavender;">
+					<div class="panel-group">
+						<div class="panel panel-success">
+							<div class="panel-heading">Nodes</div>
+							<div class="panel-body">
+								<div class="table-responsive"> 
+									<table class="table table-striped table-bordered table-condensed">
+										<thead>
+											<tr>
+												<th>Node</th>
+												<th>IP</th>
+												<th>Port</th>
+												<th>Total CPUs</th>
+												<th>Available CPUs</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr ng-repeat="node in nodesStatusView['nodes']">
+												<td>{{ node.name }}</td>
+												<td>{{ node.ip }}</td>
+												<td>{{ node.port }}</td>
+												<td>{{ node.num_cpus }}</td>
+												<td>{{ node.available_cpus }}</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel panel-info">
+							<div class="panel-heading">Jobs</div>
+							<div class="panel-body">
+								<div class="table-responsive"> 
+									<table class="table table-striped table-bordered table-condensed">
+										<thead>
+											<tr>
+												<th>Job Id</th>
+												<th>Description</th>
+												<th>Cookie</th>
+												<th>Status</th>
+												<th>Completion</th>
+												<th>%</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr ng-repeat="jp in trackedJobsView">
+												<td>{{ jp.job_id }}</td>
+												<td>{{ jp.description }}</td>
+												<td>{{ jp.cookie }}</td>
+												<td>{{ jp.status }}</td>
+												<td>{{ jp.num_tasks_finished +'/'+ jp.num_tasks }}</td>
+												<td>{{ jp.complete_pct.toFixed(2) + '%' }}</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
-				<div class="panel panel-primary">
-					<div class="panel-heading">Jobs</div>
-					<div class="panel-body">
-						<div class="table-responsive"> 
-							<table class="table table-striped table-bordered table-condensed">
-								<thead>
-									<tr>
-										<th>Job Id</th>
-										<th>Description</th>
-										<th>Cookie</th>
-										<th>Status</th>
-										<th>Completion</th>
-										<th>%</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr ng-repeat="jp in trackedJobsView">
-										<td>{{ jp.job_id }}</td>
-										<td>{{ jp.description }}</td>
-										<td>{{ jp.cookie }}</td>
-										<td>{{ jp.status }}</td>
-										<td>{{ jp.num_tasks_finished +'/'+ jp.num_tasks }}</td>
-										<td>{{ jp.complete_pct.toFixed(2) + '%' }}</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<div class="col-sm-4" style="background-color:lavenderblush;">
-			<div class="panel-group">
-				<div class="panel panel-success">
-					<div class="panel-heading">Queue</div>
-					<div class="panel-body">
-						<div class="table-responsive"> 
-							<table class="table table-striped table-bordered table-condensed">
-								<thead>
-									<tr>
-										<th>Job Id</th>
-										<th>No. Tasks</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr ng-repeat="item in queueStatusView['num_tasks_by_job']">
-										<td>{{ item.job_id }}</td>
-										<td>{{ item.num_tasks }}</td>
-									</tr>
-								</tbody>
-							</table>
+				<div class="col-sm-4" style="background-color:lavenderblush;">
+					<div class="panel-group">
+						<div class="panel panel-warning">
+							<div class="panel-heading">Queue</div>
+							<div class="panel-body">
+								<div class="table-responsive"> 
+									<table class="table table-striped table-bordered table-condensed">
+										<thead>
+											<tr>
+												<th>Job Id</th>
+												<th>No. Tasks</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr ng-repeat="item in queueStatusView['num_tasks_by_job']">
+												<td>{{ item.job_id }}</td>
+												<td>{{ item.num_tasks }}</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
