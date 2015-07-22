@@ -73,8 +73,8 @@ appConsole.use('/grid/console', express.static(path.join(__dirname, 'console')))
 appConsole.use('/grid/console_ws', require('./console_ws/').router);
 
 appConsole.use(function timeLog(req, res, next) {
-	//console.log('an incomming request @ ./. Time: ', Date.now());
-	res.header("Access-Control-Allow-Origin", "*");
+	console.log('an incomming request @ ./. Time: ', Date.now());
+	//res.header("Access-Control-Allow-Origin", "*");
 	next();
 });
 
