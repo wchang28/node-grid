@@ -41,7 +41,7 @@
 												<th>Node</th>
 												<th>IP</th>
 												<th>Port</th>
-												<th>Total CPUs</th>
+												<th>Utilization</th>
 												<th>Available CPUs</th>
 											</tr>
 										</thead>
@@ -50,7 +50,7 @@
 												<td>{{ node.name }}</td>
 												<td>{{ node.ip }}</td>
 												<td>{{ node.port }}</td>
-												<td>{{ node.num_cpus }}</td>
+												<td>{{ node.num_cpus - node.available_cpus}}/{{node.available_cpus}}</td>
 												<td>{{ node.available_cpus }}</td>
 											</tr>
 										</tbody>
