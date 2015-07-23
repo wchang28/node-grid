@@ -40,7 +40,7 @@
 			,"MarkTaskStart":		"exec [dbo].[stp_NodeJSGridJobTask] @job_id=?, @task_index=?, @pid=?"
 			,"MarkTaskEnd":			"exec [dbo].[stp_NodeJSGridJobTask] @job_id=?, @task_index=?, @pid=?, @ret_code=?, @stdout=?, @stderr=?"
 			,"GetJobResult":		"exec [dbo].[stp_NodeJSGridGetJobResult] @job_id=?"
-			,"GetLatestJobsStatus":	"exec [dbo].[stp_NodeJSGridGetLatestJobsStatus]
+			,"GetLatestJobsStatus":	"exec [dbo].[stp_NodeJSGridGetLatestJobsStatus]"
 		}
 	}
 	,"nodes":
