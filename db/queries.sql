@@ -474,3 +474,32 @@ END
 
 
 GO
+
+USE [Tools]
+GO
+
+/****** Object:  StoredProcedure [dbo].[stp_NodeJSGridGetLatestJobsStatus]    Script Date: 7/23/2015 2:37:17 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+CREATE PROCEDURE [dbo].[stp_NodeJSGridGetLatestJobsStatus]
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	select top 500
+	*
+	from [dbo].[grid_jobs_view] (nolock)
+	order by [job_id] desc
+END
+
+
+
+GO
+
