@@ -2,6 +2,7 @@
 	var app = angular.module('GridConsoleApp', []);
 	app.controller('GridConsoleController', function($scope, $filter, $http) {
 		$scope.dispatcherHostname = location.hostname;
+		$scope.msgBrokerConnected = false;
 		$scope.msgBroker = null;
 		$scope.dispatcherRootPathUrl = null;
 		$scope.nodesStatusView = null;
@@ -151,6 +152,13 @@
 			broker.onconnect = function() {
 				var s = 'connected to the msg broker ' + broker.url;
 				console.log(s);
+				$scope.msgBrokerConnected = true;
+				$scope.$apply();
+			};
+			broker.ondisconnect = function() {
+				var s = 'disconnected from the msg broker ' + broker.url + ' !!!';
+				console.log(s);
+				$scope.msgBrokerConnected = false;
 				$scope.$apply();
 			};
 		}
