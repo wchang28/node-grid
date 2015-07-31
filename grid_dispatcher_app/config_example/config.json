@@ -8,10 +8,6 @@
 	{
 		"url": "@@MsgBrokerUrl@@"
 		,"urlClient": "@@MsgBrokerClientUrl@@"
-		,"tlsOptions":
-		{
-			"rejectUnauthorized": false
-		}
 		,"broker_options":
 		{
 			"reconnectIntervalMS": 10000

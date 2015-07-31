@@ -2,10 +2,6 @@
 	"msg_broker":
 	{
 		"url": "@@MsgBrokerUrl@@"
-		,"tlsOptions":
-		{
-			"rejectUnauthorized": false
-		}
 		,"options":
 		{
 			"outgoingHeartBeatMS": 10000
