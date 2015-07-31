@@ -16,13 +16,19 @@ var dispatcher = null;
 function initialize(config) {
 	var brokerConfig = config.msg_broker;
 	msgBroker = new StompMsgBroker(function() {return Stomp.client(brokerConfig.url, null, brokerConfig.tlsOptions);}, brokerConfig.broker_options, brokerConfig.login_options, null);
-	var eventTopic = brokerConfig.event_topic;
-	dispatcher = new Dispatcher(config.task_monitor_port, config.launcher_url_home_path, config.db_conn, config.nodes);
-	
 	msgBroker.onconnect = function() {
 		var s = 'connected to the msg broker ' + msgBroker.url;
 		console.log(s);
-	}
+	};
+	msgBroker.onerror = function(e) {
+		console.error('!!! ERROR !!! ' + JSON.stringify(e));
+	};
+	msgBroker.ondisconnect = function(e) {
+		var msg = '!!! Disconnectted remotely !!! Will reconnect in ' + brokerConfig.broker_options.reconnectIntervalMS + ' ms';
+		console.error(msg);
+	};
+	var eventTopic = brokerConfig.event_topic;
+	dispatcher = new Dispatcher(config.task_monitor_port, config.launcher_url_home_path, config.db_conn, config.nodes);
 	dispatcher.onNodesStatusChanged = function (event) {
 		msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODES_STATUS_CHANGED', content: event}),function(receipt_id) {});
 	};
