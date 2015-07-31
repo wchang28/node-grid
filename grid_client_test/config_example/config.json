@@ -16,9 +16,9 @@
 	,"gridEventTopic": "/topic/grid_events"
 	,"dispatcherConfig":
 	{
-		"protocol": "http"
+		"protocol": "http/https"
 		,"hostname": "@@DispatcherHostName@@"
-		,"port": 279
-		,"homePath": "/grid_dispatcher/"
+		,"port": @@DispatcherPort@@
+		,"verifySSLCertificates": true/false
 	}
 }
