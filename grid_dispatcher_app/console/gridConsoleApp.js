@@ -131,6 +131,9 @@
 						//console.log(JSON.stringify(msg));
 						removeJob(msg.content.job_id);
 						break;
+					case "REFRESH_DASHBOARD_APP":
+						location.reload(true);
+						break;
 				}
 				$scope.$apply();
 			}
