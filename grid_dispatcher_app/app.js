@@ -45,6 +45,12 @@ if (config.ssl) {
 	var privateKey  = fs.readFileSync(config.ssl.private_key_file, 'utf8');
 	var certificate = fs.readFileSync(config.ssl.certificate_file, 'utf8');
 	sslCredentials = {key: privateKey, cert: certificate};
+	if (config.ssl.ca_files && config.ssl.ca_files.length > 0) {
+		var ca = [];
+		for (var i in config.ssl.ca_files)
+			ca.push(fs.readFileSync(config.ssl.ca_files[i], 'utf8'));
+		sslCredentials.ca = ca;
+	}
 	server = https.createServer(sslCredentials, app);
 }
 else {

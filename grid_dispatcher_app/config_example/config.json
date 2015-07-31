@@ -3,6 +3,7 @@
 	{
 		"private_key_file": "@@PrivateKeyNoPasswordFilepath@@"
 		,"certificate_file": "@@CeritficateFilepath@@"
+		,"ca_files": ["@@CACertificateFilepath1@@", "@@CACertificateFilepath2@@", "..."]
 	}
 	,"msg_broker":
 	{
