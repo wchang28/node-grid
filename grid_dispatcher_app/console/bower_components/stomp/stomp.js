@@ -311,7 +311,7 @@
 		this.subscribe = function(destination, callback, headers) {
 			var client = this;
 			var id = '';
-			if (typeof headers['id'] == 'string')
+			if (headers && typeof headers['id'] == 'string')
 				id = headers['id'];
 			else
 				id = "sub-" + counter++;
