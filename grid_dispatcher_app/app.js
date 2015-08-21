@@ -5,7 +5,10 @@ var app = express();
 var bodyParser = require('body-parser');
 var fs = require('fs');
 var path = require('path');
-var global = require('./global');
+var stompConnector = require('stomp_msg_connector');
+
+var DISPATCHER_HOME_PATH = '/grid_dispatcher';
+var MAIN_HANDLER_PATH = "." + DISPATCHER_HOME_PATH;
 
 // process.argv[2] is config path
 if (process.argv.length < 3) {
@@ -15,16 +18,33 @@ if (process.argv.length < 3) {
 var gridConfigFilePath = process.argv[2];
 console.log('grid config file path: ' + gridConfigFilePath);
 var config = JSON.parse(fs.readFileSync(gridConfigFilePath, 'utf8'));
+config['brokers'] = {};
+config['brokers']['mainMsgBroker'] = config['msgBroker'];
+delete config['msgBroker'];
+var mainBrokerConfig = config["brokers"]["mainMsgBroker"];
+mainBrokerConfig["processors"] = {};
+mainBrokerConfig["processors"]["mainProcessor"] =
+{
+	"incoming": config["taskLauncherToDispatcherQueue"]
+	,"subscribe_headers": {"ack": "client"}
+	,"handler_path": __dirname + DISPATCHER_HOME_PATH
+	,"handler_key": "taskLauncherMsgHandler"
+};
 
-global.msgBrokerConfig = config["msg_broker"];
-
+//console.log("===============================================");
+//console.log(JSON.stringify(config));
+//console.log("===============================================");
+	
+var p = stompConnector.initialize(config);
+p.on('broker_connected', function (event) { 
+ 	console.log(event.broker_name + ': connected to the msg broker ' + event.broker_url); 
+}).on('ready', function () { 
+	console.log('messaging service is READY'); 
+}); 
+	
 // process.argv[3] is tcp port
 var DEFAULT_PORT = 279;
 var tcp_port = (process.argv.length >=4 ? (parseInt(process.argv[3]) ? parseInt(process.argv[3]) : DEFAULT_PORT) : DEFAULT_PORT);
-
-global.dispatcher = {};
-global.dispatcher.port = tcp_port;
-global.dispatcher.rootPath = '/grid_dispatcher';
 
 app.use(bodyParser.json());
 app.use(function timeLog(req, res, next) {
@@ -33,9 +53,7 @@ app.use(function timeLog(req, res, next) {
 	next();
 });
 
-var gridDispatcher = require('./grid_dispatcher/');
-gridDispatcher.initialize(config);
-app.use('/grid_dispatcher', gridDispatcher.router);
+app.use(DISPATCHER_HOME_PATH, require(MAIN_HANDLER_PATH).router);
 
 var server = null;
 var secure_http = false;
@@ -58,17 +76,34 @@ else {
 	server = http.createServer(app);
 }
 
-global.dispatcher.protocol = (secure_http ? 'https://' : 'http://');
-
 server.listen(tcp_port, function() {
 	var host = server.address().address;
 	var port = server.address().port;
 	console.log('Grid dispatcher listening at %s://%s:%s', (secure_http ? 'https' : 'http'), host, port);
 });
 
+// console web services/web server support
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // process.argv[4] is console port
 var DEFAULT_CONSOLE_PORT = 8080;
 var console_port = (process.argv.length >=5 ? (parseInt(process.argv[4]) ? parseInt(process.argv[4]) : DEFAULT_CONSOLE_PORT) : DEFAULT_CONSOLE_PORT);
+
+// global is the configuration for the console browser client
+////////////////////////////////////////////////////////////////////////////////
+var global = require('./global');
+global.msgBrokerConfig =
+{
+	"url": config["consoleBrowserClient"]["brokerUrl"]
+	,"brokerOptions": mainBrokerConfig["brokerOptions"]
+	,"loginOptions": mainBrokerConfig["loginOptions"]
+	,"tlsOptions": (mainBrokerConfig["tlsOptions"] ? mainBrokerConfig["tlsOptions"] : null)
+	,"eventTopic": config["eventTopic"]
+};
+global.dispatcher = {};
+global.dispatcher.port = tcp_port;
+global.dispatcher.rootPath = DISPATCHER_HOME_PATH;
+global.dispatcher.protocol = (secure_http ? 'https://' : 'http://');
+////////////////////////////////////////////////////////////////////////////////
 
 var appConsole = express();
 appConsole.use(bodyParser.json());
@@ -86,3 +121,4 @@ serverConsole.listen(console_port, function() {
 	var port = serverConsole.address().port;
 	console.log('Grid console listening at %s://%s:%s', (secure_http ? 'https' : 'http'), host, port);
 });
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

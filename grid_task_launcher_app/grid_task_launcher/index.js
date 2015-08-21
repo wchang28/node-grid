@@ -1,69 +1,62 @@
-// grid task launcher
-var sqlserver = require('msnodesql');
-var http = require('http');
 var fs = require('fs');
-var express = require('express');
-var router = express.Router();
+var sqlserver = require('msnodesql');
+var exec = require('child_process').exec;
+var treeKill = require('tree-kill');
+var stompConnector = require('stomp_msg_connector');
+
+var msgBroker = stompConnector.getBroker('mainMsgBroker');
+var config = stompConnector.getConfig();
+var thisNode = config['node'];
+//console.log(JSON.stringify(thisNode));
+var MAX_NUM_TASKS_RUNNING_ALLOWED = thisNode.num_cpus;
+var __dbSettings = null;
+var __acceptingNewTasks = false;
+var __numTasksRunning = 0;
+var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
 
 function task_toString(task) {return 'task{' + task.job_id + ',' + task.index + '}';}
-function make_err_obj(err)
-{
-	var o = {exception: err.toString()};
-	return o;
-}
+function make_err_obj(err) {return {exception: err.toString()};}
+function onNumTasksRunningChanged() {console.log('numTasksRunning=' + __numTasksRunning);}
 
 // Get the task info from the database so it can be launched.
 // At the same time, mark the task as being 'DISPATCHED' to the node.
 // If the task is not found or the task has already been aborted, the onError() handler will be called instead.
-function getJobTaskInfoDB(conn_str, sql, task, onDone, onError) {
-	var stmt = sqlserver.query(conn_str, sql, [task.job_id, task.index, task.node]);
-	var ci = null;
-	task.cmd = null;
-	stmt.on('meta', function (meta)	{ci = meta;});
-	stmt.on('column', function (idx, data, more) {
-		var fld = ci[idx].name;
-		switch(fld)
-		{
-			case 'cmd':
-				task.cmd = data;
-				break;
-			case 'cookie':
-				task.cookie = data;
-				break;
-			case 'stdin_file':
-				task.stdin_file = data;
-				break;
-			case 'aborted':
-				task.aborted = data;
-				break;
+// onDone(err)
+function getJobTaskInfoDB(conn_str, sql, task, onDone) {
+	sqlserver.query(conn_str, sql, [task.job_id, task.index, task.node], function(err, dataTable) {
+		if (err) {
+			if (typeof onDone === 'function') onDone(err);
+		} else {
+			if (dataTable.length < 1) {
+				if (typeof onDone === 'function') onDone(task_toString(task) + ' cannnot be found');
+				return;
+			} else {
+				var row = dataTable[0];
+				task.cmd = row['cmd'];
+				task.cookie = row['cookie'];
+				task.stdin_file = row['stdin_file'];
+				task.aborted = row['aborted'];
+				if (task.aborted) {
+					if (typeof onDone === 'function') onDone(task_toString(task) + ' was aborted');
+					return;
+				} else {
+					if (typeof onDone === 'function') onDone(null);
+				}
+			}
 		}
 	});
-	stmt.on('done', function ()	{
-		if (!task.cmd) {
-			if (typeof onError == 'function') onError(task_toString(task) + ' cannnot be found');
-		}
-		else if (task.aborted) {
-			if (typeof onError == 'function') onError(task_toString(task) + ' was aborted');
-		}
-		else {
-			if (typeof onDone == 'function') onDone();
-		}
-	});
-	stmt.on('error', function (err) {
-		if (typeof onError == 'function') onError(err.toString());
-	})
 }
 
 // mark task as 'RUNNING' in the database
 function markTaskStartDB(conn_str, sql, task) {
-	var stmt = sqlserver.query(conn_str, sql, [task.job_id, task.index, task.pid]);
-	stmt.on('done', function ()	{
+	sqlserver.query(conn_str, sql, [task.job_id, task.index, task.pid], function(err, dataTable) {
 		console.log(task_toString(task) + " start marked");
 	});
 }
 
 // mark task as 'FINISHED' in the database
-function markTaskFinishedDB(conn_str, sql, task, stdout, stderr, onDone, onError) {
+// onDone(err)
+function markTaskFinishedDB(conn_str, sql, task, stdout, stderr, onDone) {
 	var params =
 	[
 		task.job_id
@@ -73,159 +66,166 @@ function markTaskFinishedDB(conn_str, sql, task, stdout, stderr, onDone, onError
 		,stdout.length > 0 ? stdout : null
 		,stderr.length > 0 ? stderr : null
 	];
-	var stmt = sqlserver.query(conn_str, sql, params);
-	var ci = null;
-	stmt.on('meta', function (meta)	{ci = meta;});
-	stmt.on('done', function ()	{
-		console.log(task_toString(task) + " finished marked");
-		if (typeof onDone == 'function') onDone(task, onError);
+	sqlserver.query(conn_str, sql, params, function(err, dataTable) {
+		if (typeof onDone === 'function') onDone(err);
 	});
-	stmt.on('error', function (err) {
-		if (typeof onError == 'function') onError(err.toString());
-	})
 }
 
-function handleLaunchTask(request, result) {
-	var dispatcher_address = request.connection.remoteAddress;
-	//console.log('dispatcher address is ' + dispatcher_address);
-	function onFinalError(err) {
-		console.log('!!! ' + err.toString());
-		result.json(make_err_obj(err));
-	}
-	function onFinalReturn(task) {
-		console.log('child process pid=' + task.pid);
-		result.json(task);
-	}
-	//console.log('request.body = ' + JSON.stringify(request.body));
-	var lp = request.body;
+function ackTaskDispatchError(err, host) {
+	var o = {method: 'nodeAckDispatchedTaskError', content: {exception: err.toString(), host: host}};
+	msgBroker.send(taskLauncherToDispatcherQueue, {persistence: true}, JSON.stringify(o), function(recepit_id) {
+		//console.log('nodeAckDispatchedTaskError message sent successfully for host ' + host + '. recepit_id=' + recepit_id);
+	});
+}
+function ackTaskDispatch(task) {
+	var o = {method: 'nodeAckDispatchedTask', content: {task: task}};
+	msgBroker.send(taskLauncherToDispatcherQueue, {persistence: true}, JSON.stringify(o), function(recepit_id) {
+		//console.log('nodeAckDispatchedTask message sent successfully for ' + task_toString(task) + '. recepit_id=' + recepit_id);
+	});
+}
 
-	// function to notify the dispatcher (via http) that the task has finished so the dispatcher can decrement the CPU usage count on the node
-	function notifyDispatcherOnTaskFinished(task, onError) {
-		var options = {
-			hostname: dispatcher_address
-			,port: lp.otf.port
-			,path: lp.otf.path
-			,method: lp.otf.method
-			,headers: {
-				'Content-Type': 'application/json'
-			}
-		};
-		var s = JSON.stringify(task);
-		options.headers['Content-Length'] = s.length;
-		//console.log(options);
-		var req = http.request(options
-		,function(res) {
-			if (res.statusCode != 200) {
-				if (typeof onError == 'function') onError('dispatcher returns a HTTP status code of ' + res.statusCode);
-			}
-			res.on('data', function(d) {
-				try {
-					var o = JSON.parse(d.toString());
-					if (typeof o.exception == 'string') throw o.exception;
-					console.log('dispatcher ACK task finished');
-				} catch(e) {
-					if (typeof onError == 'function') onError('dispatcher returns invalid response: ' + e);
-				}
-			});
-		});
-		req.on('error'
-		,function(err) {
-			if (typeof onError == 'function') onError('dispatcher response error - ' + err.message);
-		});
-		req.end(s);
+// function to notify the dispatcher (via http) that the task has finished so the dispatcher can decrement the CPU usage count on the node
+function notifyDispatcherOnTaskFinished(task) {
+	var o = {method: 'nodeCompleteTask', content: {task: task}};
+	msgBroker.send(taskLauncherToDispatcherQueue, {persistence: true}, JSON.stringify(o), function(recepit_id) {
+		//console.log('nodeCompleteTask message sent successfully for ' + task_toString(task) + '. recepit_id=' + recepit_id);
+	});
+}
+
+function markTaskStart(task) {markTaskStartDB(__dbSettings.conn_str, __dbSettings.sqls['MarkTaskStart'], task);}
+function markTaskFinished(task, stdout, stderr, onDone) {markTaskFinishedDB(__dbSettings.conn_str, __dbSettings.sqls['MarkTaskEnd'], task, stdout, stderr, onDone);}
+
+function runTask(task, onDone) {
+	function onExit(err) {
+		notifyDispatcherOnTaskFinished(task);	
+		if (err)
+			console.error('!!! Error: ' + err.toString());
+		else
+			console.log(task_toString(task) + " finished running");
+		if (typeof onDone === 'function') onDone();
 	}
-	//console.log(lp);
-	var conn_str = lp.db.conn_str;
-	var task = lp.task;
 	console.log(task.node + ' have received dispatch of ' + task_toString(task));
-	function markTaskStart(task) {
-		markTaskStartDB(conn_str, lp.db.sqls['MarkTaskStart'], task);
+	getJobTaskInfoDB(__dbSettings.conn_str, __dbSettings.sqls['GetTaskDetail'], task, function(err) {
+		if (err) {
+			ackTaskDispatchError(err, task.node, onDone);
+			return;
+		} else {
+			var cmd = task.cmd;
+			var stdin_file = task.stdin_file;
+			var cookie = task.cookie;
+			delete task["cmd"];
+			delete task['stdin_file'];
+			delete task['cookie'];
+			task.pid = 0;
+			var stdout = '';
+			var stderr = '';
+			var instream = null;
+			if (stdin_file && typeof stdin_file == 'string' && stdin_file.length > 0) {
+				instream = fs.openReadFileStream(stdin_file);
+				if (!instream) {
+					task.pid = 0;
+					task.ret_code = 1;
+					stderr = 'error opening stdin file ' + stdin_file;
+					ackTaskDispatch(task);
+					markTaskStart(task);
+					markTaskFinished(task, stdout, stderr, onExit);
+					return;
+				}
+			}
+			var options = {};
+			//console.log('cmd=' + cmd);
+			var child = exec(cmd, options);
+			if (instream && child.stdin) instream.pipe(child.stdin);
+			task.pid = child.pid
+			ackTaskDispatch(task);
+			markTaskStart(task);
+			child.stdout.on('data', function(data){
+				stdout += data.toString();
+			});
+			child.stderr.on('data', function(data){
+				stderr += data.toString();
+			});
+			child.on('error', function(err) {
+				task.ret_code = err.code;
+				console.log('child.on_error: ret=' + task.ret_code);
+				markTaskFinished(task, stdout, stderr, onExit);
+			});
+			child.on('close', function(exitCode) {
+				task.ret_code = exitCode;
+				console.log('child.on_close: ret=' + task.ret_code);
+				markTaskFinished(task, stdout, stderr, onExit);
+			});				
+		}
+	});
+}
+
+function treeKillProcesses(pids) {
+	for (var i in pids)
+		treeKill(pids[i], 'SIGKILL');
+}
+
+function replyPing() {
+	var o = {method: 'nodePing', content:{host: thisNode.name}};
+	msgBroker.send(taskLauncherToDispatcherQueue, {persistence: true}, JSON.stringify(o), function(recepit_id) {
+		console.log('nodePing reply sent successfully. recepit_id=' + recepit_id);
+	});	
+}
+
+// task queue handler
+module.exports['taskQueueMsgHandler'] = function(broker, message) {
+	if (!__acceptingNewTasks || __numTasksRunning >= MAX_NUM_TASKS_RUNNING_ALLOWED)
+		message.nack();	// not accepting this message let other node handle it
+	else {	// __acceptingNewTasks && __numTasksRunning < MAX_NUM_TASKS_RUNNING_ALLOWED
+		message.ack();
+		var task = JSON.parse(message.body);
+		task.node = thisNode.name;
+		__numTasksRunning++;
+		onNumTasksRunningChanged();
+		runTask(task, function() {
+			__numTasksRunning--;
+			onNumTasksRunningChanged();
+		});
 	}
-	function markTaskFinished(task, stdout, stderr, onDone, onError) {
-		markTaskFinishedDB(conn_str, lp.db.sqls['MarkTaskEnd'], task, stdout, stderr, onDone, onError);
-	}
-	// get task info from the database
-	getJobTaskInfoDB(conn_str, lp.db.sqls['GetTaskDetail'], task
-	,function() {
-		var cmd = task.cmd;
-		var stdin_file = task.stdin_file;
-		var cookie = task.cookie;
-		delete task["cmd"];
-		delete task['stdin_file'];
-		delete task['cookie'];
-		task.pid = 0;
-		var stdout = '';
-		var stderr = '';
-		
-		var instream = null;
-		if (stdin_file && typeof stdin_file == 'string' && stdin_file.length > 0) {
-			instream = fs.openReadFileStream(stdin_file);
-			if (!instream) {
-				task.ret_code = 1;
-				stderr = 'error opening stdin file ' + stdin_file;
-				onFinalError(stderr);
-				markTaskStart(task);
-				markTaskFinished(task, stdout, stderr, notifyDispatcherOnTaskFinished, function(err){console.log(err);});
-				return;
+}
+
+// topic handler
+module.exports['dispatcherMsgHandler'] = function(broker, message) {
+	var o = JSON.parse(message.body);
+	if (!o.host) {	// host not specify => broadcast
+		switch(o.method) {
+			case "nodePing": {
+				replyPing();
+				break;
 			}
 		}
-		var exec = require('child_process').exec;
-		var options = {
-		};
-		//console.log('cmd=' + cmd);
-		var child = exec(cmd, options);
-		if (instream && child.stdin) instream.pipe(child.stdin);
-		task.pid = child.pid
-		onFinalReturn(task);
-		markTaskStart(task);
-		child.stdout.on('data', function(data){
-			stdout += data.toString();
-		});
-		child.stderr.on('data', function(data){
-			stderr += data.toString();
-		});
-		child.on('error', function(err) {
-			task.ret_code = err.code;
-			console.log('child.on_error: ret=' + task.ret_code);
-			markTaskFinished(task, stdout, stderr, notifyDispatcherOnTaskFinished, function(err){console.log(err);});
-		});
-		child.on('close', function(exitCode) {
-			task.ret_code = exitCode;
-			console.log('child.on_close: ret=' + task.ret_code);
-			markTaskFinished(task, stdout, stderr, notifyDispatcherOnTaskFinished, function(err){console.log(err);});
-		});
+	} else if (o.host === thisNode.name) {
+		var content = o.content;
+		switch(o.method) {
+			case "nodeRequestToJoinGrid": {
+				if (content.exception) {
+					console.error('!!! Error: ' + o.content.exception.toString());
+					process.exit(1);
+				}
+				else {
+					console.log(thisNode.name + " successfully join the grid");
+					__dbSettings = content["dbSettings"];
+					//console.log(JSON.stringify(__dbSettings));
+					__acceptingNewTasks = true;
+				}
+				break;
+			}
+			case 'nodeAcceptTasks': {
+				__acceptingNewTasks = content.accept;
+				break;
+			}
+			case "nodeKillProcesses": {
+				treeKillProcesses(content.pids);
+				break;
+			}
+			case "nodePing": {
+				replyPing();
+				break;
+			}
+		}
 	}
-	,onFinalError);
 }
-
-function handleKillProcessTree(request, result) {
-	function onFinalReturn() {
-		result.json({});
-	}
-	var processid = request.body.pid;
-	console.log('killing the process pid=' + processid + ' and its childern...');
-	var kill = require('tree-kill');
-	kill(processid, 'SIGKILL');
-	onFinalReturn();
-}
-
-router.use(function timeLog(req, res, next) {
-	console.log('an incomming request @ /grid_task_launcher. Time: ', Date.now());
-	res.header("Cache-Control", "no-cache, no-store, must-revalidate");
-	res.header("Pragma", "no-cache");
-	res.header("Expires", 0);
-	next();
-});
-
-router.post('/LAUNCH_TASK', handleLaunchTask);
-router.post('/KILL_PROCESS_TREE', handleKillProcessTree);
-router.get('/PING', function(request, result) {
-	result.json({});
-});
-
-router.all('/', function(request, result) {
-	result.set('Content-Type', 'application/json');
-	result.json(make_err_obj('bad request'));
-});
-
-module.exports = router;

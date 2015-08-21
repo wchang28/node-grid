@@ -1,56 +1,54 @@
 // grid dispatcher web services
+// handler for route /grid_dispatcher
 var xmldom = require('xmldom');
 var DOMParser = xmldom.DOMParser;
 var XMLSerializer = xmldom.XMLSerializer;
 var xpath = require('xpath');
 var fs = require('fs');
-var Stomp = require('stompjs2');
-var StompMsgBroker = require('stomp_msg_broker').StompMsgBroker;
 var Dispatcher = require('node-grid').GridDispatcher;
 var express = require('express');
 var router = express.Router();
-	
-var msgBroker = null;
-var dispatcher = null;
+var stompConnector = require('stomp_msg_connector');
 
-function initialize(config) {
-	var brokerConfig = config.msg_broker;
-	msgBroker = new StompMsgBroker(function() {return Stomp.client(brokerConfig.url, null, brokerConfig.tlsOptions);}, brokerConfig.broker_options, brokerConfig.login_options, null);
-	msgBroker.onconnect = function() {
-		var s = 'connected to the msg broker ' + msgBroker.url;
-		console.log(s);
-	};
-	msgBroker.onerror = function(e) {
-		console.error('!!! ERROR !!! ' + JSON.stringify(e));
-	};
-	msgBroker.ondisconnect = function(e) {
-		var msg = '!!! Disconnectted remotely !!! Will reconnect in ' + brokerConfig.broker_options.reconnectIntervalMS + ' ms';
-		console.error(msg);
-	};
-	var eventTopic = brokerConfig.event_topic;
-	dispatcher = new Dispatcher(config.task_monitor_port, config.launcher_url_home_path, config.db_conn, config.nodes);
-	dispatcher.onNodesStatusChanged = function (event) {
-		msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODES_STATUS_CHANGED', content: event}),function(receipt_id) {});
-	};
-	dispatcher.onQueueChanged = function (event) {
-		msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_QUEUE_CHANGED', content:event}),function(receipt_id) {});
-	};
-	dispatcher.onNewJobSubmitted = function (job_id, submitToken) {
-		var content = {job_id: job_id};
-		if (submitToken) content.submit_token = submitToken;
-		msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NEW_JOB_SUBMITTED', content:content}),function(receipt_id) {});
-	};
-	dispatcher.onJobStatusChanged = function(job_progress) {
-		msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_JOB_STATUS_CHANGED', content:job_progress}),function(receipt_id) {});
-	};
-	dispatcher.onJobRemovedFromTracking = function (job_id) {
-		var content = {job_id: job_id};
-		msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_JOB_REMOVED_FROM_TRACKING', content:content}),function(receipt_id) {});
-	};
-	dispatcher.onTaskCompleted = function (task) {
-		msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_TASK_COMPLETED', content:task}),function(receipt_id) {});
-	};
-}
+var config = stompConnector.getConfig();
+var msgBroker = stompConnector.getBroker('mainMsgBroker');
+var dispatcher = new Dispatcher(msgBroker, config["dispatcherToTaskLauncherTopic"], config["taskDispatchQueue"], config.db_conn);
+var eventTopic = config["eventTopic"];
+
+// hookup the dispatcher events
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+dispatcher.onNodesStatusChanged = function (event) {
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODES_STATUS_CHANGED', content: event}),function(receipt_id) {});
+};
+dispatcher.onNodeAdded = function (newNode) {
+	console.log("node " + JSON.stringify(newNode) + " just joint the grid");
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODE_ADDED', content: newNode}),function(receipt_id) {});
+};
+dispatcher.onNodeDisabled = function(node) {
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODE_DISABLED', content: node}),function(receipt_id) {});
+};
+dispatcher.onNodeRemoved = function (nodeRemoved) {
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODE_REMOVED', content: nodeRemoved}),function(receipt_id) {});
+};
+dispatcher.onQueueChanged = function (event) {
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_QUEUE_CHANGED', content:event}),function(receipt_id) {});
+};
+dispatcher.onNewJobSubmitted = function (job_id, submitToken) {
+	var content = {job_id: job_id};
+	if (submitToken) content.submit_token = submitToken;
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NEW_JOB_SUBMITTED', content:content}),function(receipt_id) {});
+};
+dispatcher.onJobStatusChanged = function(job_progress) {
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_JOB_STATUS_CHANGED', content:job_progress}),function(receipt_id) {});
+};
+dispatcher.onJobRemovedFromTracking = function (job_id) {
+	var content = {job_id: job_id};
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_JOB_REMOVED_FROM_TRACKING', content:content}),function(receipt_id) {});
+};
+dispatcher.onTaskCompleted = function (task) {
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_TASK_COMPLETED', content:task}),function(receipt_id) {});
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function make_err_obj(err) { 
  	var o = {exception: err.toString()}; 
@@ -237,5 +235,7 @@ router.all('/', function(request, result) {
 	result.json(make_err_obj('bad request'));
 });
 
-module.exports.initialize = initialize;
-module.exports.router = router;
+module.exports["router"] = router;
+module.exports["taskLauncherMsgHandler"] = function(broker, message) {
+	dispatcher.handleTaskLauncherMsg(JSON.parse(message.body));
+};
