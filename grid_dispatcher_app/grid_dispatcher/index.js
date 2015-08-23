@@ -24,8 +24,8 @@ dispatcher.onNodeAdded = function (newNode) {
 	console.log("node " + JSON.stringify(newNode) + " just joint the grid");
 	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODE_ADDED', content: newNode}),function(receipt_id) {});
 };
-dispatcher.onNodeDisabled = function(node) {
-	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODE_DISABLED', content: node}),function(receipt_id) {});
+dispatcher.onNodeDisabled = function(node, leaveGrid) {
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODE_DISABLED', content: {node: node, leaveGrid: leaveGrid}}),function(receipt_id) {});
 };
 dispatcher.onNodeRemoved = function (nodeRemoved) {
 	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_NODE_REMOVED', content: nodeRemoved}),function(receipt_id) {});

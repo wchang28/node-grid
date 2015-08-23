@@ -9,9 +9,10 @@ var config = stompConnector.getConfig();
 var thisNode = config['node'];
 //console.log(JSON.stringify(thisNode));
 var MAX_NUM_TASKS_RUNNING_ALLOWED = thisNode.num_cpus;
-var __dbSettings = null;
-var __acceptingNewTasks = false;
-var __numTasksRunning = 0;
+var __dbSettings = null;			// database settings
+var __leavePending = false;			// leave grig pending flag
+var __acceptingNewTasks = false;	// accepting new tasks flag
+var __numTasksRunning = 0;			// number of tasks that are currently running
 var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
 
 function task_toString(task) {return 'task{' + task.job_id + ',' + task.index + '}';}
@@ -171,6 +172,13 @@ function replyPing() {
 	});	
 }
 
+function notifyDispatcherNodeIsClearToLeaveGrid() {
+	var o = {method: 'nodeIsClearToLeaveGrid', content:{host: thisNode.name}};
+	msgBroker.send(taskLauncherToDispatcherQueue, {persistence: true}, JSON.stringify(o), function(recepit_id) {
+		console.log('nodeIsClearToLeaveGrid message sent successfully. recepit_id=' + recepit_id);
+	});	
+}
+
 // task queue handler
 module.exports['taskQueueMsgHandler'] = function(broker, message) {
 	if (!__acceptingNewTasks || __numTasksRunning >= MAX_NUM_TASKS_RUNNING_ALLOWED)
@@ -184,6 +192,10 @@ module.exports['taskQueueMsgHandler'] = function(broker, message) {
 		runTask(task, function() {
 			__numTasksRunning--;
 			onNumTasksRunningChanged();
+			if (!__acceptingNewTasks && __leavePending && __numTasksRunning == 0) {
+				console.log('node is now clear to leabe the grid');
+				notifyDispatcherNodeIsClearToLeaveGrid();
+			}
 		});
 	}
 }
@@ -216,6 +228,14 @@ module.exports['dispatcherMsgHandler'] = function(broker, message) {
 			}
 			case 'nodeAcceptTasks': {
 				__acceptingNewTasks = content.accept;
+				if (__acceptingNewTasks)
+					__leavePending = false;	// clear the leave pending flag
+				else	// not accepting new tasks
+					__leavePending = content.leaveGrid;
+				if (__acceptingNewTasks)
+					console.log("node enabled");
+				else
+					console.log("node disabled, __leavePending=" + __leavePending);
 				break;
 			}
 			case "nodeKillProcesses": {
