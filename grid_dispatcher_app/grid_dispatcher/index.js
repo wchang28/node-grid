@@ -50,10 +50,7 @@ dispatcher.onTaskCompleted = function (task) {
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function make_err_obj(err) { 
- 	var o = {exception: err.toString()}; 
- 	return o;
-} 
+function make_err_obj(err) {return {exception: err.toString()};}
 
 function parseSubmitJobParams(body, onDone, onError) {
 	try	{
@@ -216,6 +213,57 @@ function handleGetGridState(request, result) {
 	}
 }
 
+function getNodeHostFromRequest(request, onDone) {
+	if (typeof onDone === 'function') {
+		if (!request.query || !request.query.node || request.query.node.length == 0)
+			onDone('bad node', null, request.query);
+		else
+			onDone(null, request.query.node, request.query);
+	}
+}
+
+function handleEnableNode(request, result) {
+	function onFinalError(err) {
+		console.log('!!! Error: ' + err.toString());
+		result.json(make_err_obj(err));
+	}
+	function onFinalReturn() {result.json({});}
+	try {
+		getNodeHostFromRequest(request, function(err, host, query) {
+			if (err)
+				onFinalError(err);
+			else {
+				dispatcher.enableNode(host);
+				onFinalReturn();
+			}
+		});
+	} catch(e) {
+		onFinalError(e);
+	}	
+}
+
+function handleDisableNode(request, result) {
+	function onFinalError(err) {
+		console.log('!!! Error: ' + err.toString());
+		result.json(make_err_obj(err));
+	}
+	function onFinalReturn() {result.json({});}
+	try {
+		getNodeHostFromRequest(request, function(err, host, query) {
+			if (err)
+				onFinalError(err);
+			else {
+				var leaveGrid = false;
+				if (query && query.leaveGrid && (query.leaveGrid === '' || query.leaveGrid === '1' || query.leaveGrid.toUpperCase() === 'TRUE')) leaveGrid = true;
+				dispatcher.disableNode(host, leaveGrid);
+				onFinalReturn();
+			}
+		});
+	} catch(e) {
+		onFinalError(e);
+	}	
+}
+
 router.use(function timeLog(req, res, next) {
 	console.log('an incomming request @ /grid_dispatcher. Time: ', Date.now()); 
 	res.header("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -229,6 +277,8 @@ router.get('/kill_job', handleKillJob);
 router.get('/get_job_progress', handleGetJobProgress); 
 router.get('/get_job_result', handleGetJobResult);
 router.get('/get_grid_state', handleGetGridState);
+router.get('/enable_node', handleEnableNode);
+router.get('/disable_node', handleDisableNode);
 
 router.all('/', function(request, result) {
 	result.set('Content-Type', 'application/json');
