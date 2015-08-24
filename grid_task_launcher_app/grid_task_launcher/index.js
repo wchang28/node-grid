@@ -193,7 +193,14 @@ function onNumTasksRunningChanged() {
 	}
 }
 
-function onNodeDisabled() {checkToLeaveGrid();}
+function onNodeEnabled() {
+	console.log("node enabled");
+}
+
+function onNodeDisabled() {
+	console.log("node disabled, __leavePending=" + __leavePending);
+	checkToLeaveGrid();
+}
 
 // task queue handler
 module.exports['taskQueueMsgHandler'] = function(broker, message) {
@@ -245,11 +252,9 @@ module.exports['dispatcherMsgHandler'] = function(broker, message) {
 				else	// not accepting new tasks
 					__leavePending = content.leaveGrid;
 				if (__acceptingNewTasks)
-					console.log("node enabled");
-				else {
-					console.log("node disabled, __leavePending=" + __leavePending);
+					onNodeEnabled();
+				else
 					onNodeDisabled();
-				}
 				break;
 			}
 			case "nodeKillProcesses": {
