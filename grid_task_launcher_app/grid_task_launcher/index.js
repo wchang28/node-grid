@@ -17,7 +17,6 @@ var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
 
 function task_toString(task) {return 'task{' + task.job_id + ',' + task.index + '}';}
 function make_err_obj(err) {return {exception: err.toString()};}
-function onNumTasksRunningChanged() {console.log('numTasksRunning=' + __numTasksRunning);}
 
 // Get the task info from the database so it can be launched.
 // At the same time, mark the task as being 'DISPATCHED' to the node.
@@ -179,6 +178,23 @@ function notifyDispatcherNodeIsClearToLeaveGrid() {
 	});	
 }
 
+function checkToLeaveGrid() {
+	if (!__acceptingNewTasks && __leavePending && __numTasksRunning == 0) {
+		console.log('node is now clear to leave the grid');
+		notifyDispatcherNodeIsClearToLeaveGrid();
+	}	
+}
+
+function onNumTasksRunningChanged() {
+	console.log('numTasksRunning=' + __numTasksRunning);
+	if (__numTasksRunning == 0) {
+		console.log('node is idle');
+		checkToLeaveGrid();
+	}
+}
+
+function onNodeDisabled() {checkToLeaveGrid();}
+
 // task queue handler
 module.exports['taskQueueMsgHandler'] = function(broker, message) {
 	if (!__acceptingNewTasks || __numTasksRunning >= MAX_NUM_TASKS_RUNNING_ALLOWED)
@@ -192,10 +208,6 @@ module.exports['taskQueueMsgHandler'] = function(broker, message) {
 		runTask(task, function() {
 			__numTasksRunning--;
 			onNumTasksRunningChanged();
-			if (!__acceptingNewTasks && __leavePending && __numTasksRunning == 0) {
-				console.log('node is now clear to leabe the grid');
-				notifyDispatcherNodeIsClearToLeaveGrid();
-			}
 		});
 	}
 }
@@ -234,8 +246,10 @@ module.exports['dispatcherMsgHandler'] = function(broker, message) {
 					__leavePending = content.leaveGrid;
 				if (__acceptingNewTasks)
 					console.log("node enabled");
-				else
+				else {
 					console.log("node disabled, __leavePending=" + __leavePending);
+					onNodeDisabled();
+				}
 				break;
 			}
 			case "nodeKillProcesses": {
@@ -249,3 +263,5 @@ module.exports['dispatcherMsgHandler'] = function(broker, message) {
 		}
 	}
 }
+
+onNumTasksRunningChanged();
