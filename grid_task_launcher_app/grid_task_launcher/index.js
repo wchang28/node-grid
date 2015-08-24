@@ -74,8 +74,8 @@ function markTaskFinishedDB(conn_str, sql, task, stdout, stderr, onDone) {
 	});
 }
 
-function ackTaskDispatchError(err, host) {
-	var o = {method: 'nodeAckDispatchedTaskError', content: {exception: err.toString(), host: host}};
+function ackTaskDispatchError(task, err) {
+	var o = {method: 'nodeAckDispatchedTaskError', content: {task: task, exception: err.toString()}};
 	msgBroker.send(taskLauncherToDispatcherQueue, {persistence: true}, JSON.stringify(o), function(recepit_id) {
 		//console.log('nodeAckDispatchedTaskError message sent successfully for host ' + host + '. recepit_id=' + recepit_id);
 	});
@@ -110,7 +110,8 @@ function runTask(task, onDone) {
 	console.log(task.node + ' have received dispatch of ' + task_toString(task));
 	getJobTaskInfoDB(__dbSettings.conn_str, __dbSettings.sqls['GetTaskDetail'], task, function(err) {
 		if (err) {
-			ackTaskDispatchError(err, task.node, onDone);
+			ackTaskDispatchError(task, err);
+			if (typeof onDone === 'function') onDone();
 			return;
 		} else {
 			var cmd = task.cmd;
@@ -208,7 +209,8 @@ function onNodeDisabled() {
 function handleDispatchedTasks(request, result) {
 	var tasks = request.body;
 	result.json({});
-	console.log('received a dispatch of ' + tasks.length + ' task(s)');
+	console.log('node received a dispatch of ' + tasks.length + ' task(s)');
+	console.log(JSON.stringify(tasks));
 	for (var i in tasks) {
 		var task = tasks[i];
 		__numTasksRunning++;
@@ -221,7 +223,7 @@ function handleDispatchedTasks(request, result) {
 }
 
 router.use(function timeLog(req, res, next) {
-	console.log('an incomming request @ /grid_task_launcher. Time: ', Date.now());
+	//console.log('an incomming request @ /grid_task_launcher. Time: ', Date.now());
 	res.header("Cache-Control", "no-cache, no-store, must-revalidate");
 	res.header("Pragma", "no-cache");
 	res.header("Expires", 0);

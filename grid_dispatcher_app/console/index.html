@@ -40,6 +40,8 @@
 											<tr>
 												<th>Node</th>
 												<th>IP</th>
+												<th>Port</th>
+												<th>Use IP</th>
 												<th>Enabled</th>
 												<th>Leave Pending</th>
 												<th>CPU Usage</th>
@@ -50,6 +52,8 @@
 											<tr ng-repeat="node in nodesStatusView['nodes']">
 												<td>{{ node.name }}</td>
 												<td>{{ node.ip }}</td>
+												<td>{{ node.port }}</td>
+												<td>{{ node.use_ip }}</td>
 												<td>{{ node.active }}</td>
 												<td>{{ node.leavePending }}</td>
 												<td>{{ node.num_cpus - node.available_cpus}}/{{node.num_cpus }}</td>

@@ -64,19 +64,8 @@ delete config['availableCPUs'];
 
 app.use(bodyParser.json());
 app.use(function timeLog(req, res, next) {
-	//console.log('an incomming request @ ./. Time: ', Date.now());
+	console.log('an incomming request @ ./. Time: ', Date.now());
 	next();
-});
-
-var gridTaskLauncherRoutes = require(__dirname + MAIN_HANDLER_PATH).router;
-app.use(MAIN_HANDLER_PATH, gridTaskLauncherRoutes);
-
-var server = http.createServer(app);
-
-server.listen(config.node.port, function() {
-	var host = server.address().address;
-	var port = server.address().port;
-	console.log('task launcher server listening at %s://%s:%s', 'http', host, port);
 });
 
 // initialize the connector
@@ -85,6 +74,18 @@ p.on('broker_connected', function (event) {
 	console.log(event.broker_name + ': connected to the msg broker ' + event.broker_url);
 }).on('ready', function () {
 	console.log('messaging service is READY');
+	
+	var gridTaskLauncherRoutes = require(__dirname + MAIN_HANDLER_PATH).router;
+	app.use(MAIN_HANDLER_PATH, gridTaskLauncherRoutes);
+
+	var server = http.createServer(app);
+
+	server.listen(config.node.port, function() {
+		var host = server.address().address;
+		var port = server.address().port;
+		console.log('task launcher server listening at %s://%s:%s', 'http', host, port);
+	});
+
 	var msgBroker = stompConnector.getBroker('mainMsgBroker');
 	var o = {method: 'nodeRequestToJoinGrid', content: {node: config["node"]}};
 	msgBroker.send(config['taskLauncherToDispatcherQueue'], {persistence: true}, JSON.stringify(o), function(recepit_id) {
