@@ -1,3 +1,7 @@
+var http = require('http');
+var express = require('express');
+var app = express();
+var bodyParser = require('body-parser');
 var fs = require('fs');
 var stompConnector = require('stomp_msg_connector');
 var os = require("os");
@@ -41,26 +45,39 @@ mainBrokerConfig["processors"]["topicProcessor"] =
 	,"handler_path": __dirname + MAIN_HANDLER_PATH
 	,"handler_key": "dispatcherMsgHandler"
 };
-mainBrokerConfig["processors"]["taskQueueProcessor"] =
-{
-	"incoming": config["taskDispatchQueue"]
-	,"subscribe_headers": {"ack": "client"}
-	,"autoAckByClient": false
-	,"handler_path": __dirname + MAIN_HANDLER_PATH
-	,"handler_key": "taskQueueMsgHandler"
-};
 // configure the node object
 config["node"] =
 {
 	name: os.hostname()
 	,ip: ipAddress
+	,port: config["dispatchPort"]
+	,use_ip: config["dispatchUseIP"]
 	,num_cpus: config["availableCPUs"]
 };
+delete config['dispatchPort'];
+delete config['dispatchUseIP'];
 delete config['availableCPUs'];
 
 //console.log("===============================================");
 //console.log(JSON.stringify(config));
 //console.log("===============================================");
+
+app.use(bodyParser.json());
+app.use(function timeLog(req, res, next) {
+	//console.log('an incomming request @ ./. Time: ', Date.now());
+	next();
+});
+
+var gridTaskLauncherRoutes = require(__dirname + MAIN_HANDLER_PATH).router;
+app.use(MAIN_HANDLER_PATH, gridTaskLauncherRoutes);
+
+var server = http.createServer(app);
+
+server.listen(config.node.port, function() {
+	var host = server.address().address;
+	var port = server.address().port;
+	console.log('task launcher server listening at %s://%s:%s', 'http', host, port);
+});
 
 // initialize the connector
 var p = stompConnector.initialize(config);

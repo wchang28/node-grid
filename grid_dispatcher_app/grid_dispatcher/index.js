@@ -12,7 +12,7 @@ var stompConnector = require('stomp_msg_connector');
 
 var config = stompConnector.getConfig();
 var msgBroker = stompConnector.getBroker('mainMsgBroker');
-var dispatcher = new Dispatcher(msgBroker, config["dispatcherToTaskLauncherTopic"], config["taskDispatchQueue"], config.db_conn);
+var dispatcher = new Dispatcher(msgBroker, config["dispatcherToTaskLauncherTopic"], config.db_conn);
 var eventTopic = config["eventTopic"];
 
 // hookup the dispatcher events

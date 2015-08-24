@@ -3,6 +3,9 @@ var sqlserver = require('msnodesql');
 var exec = require('child_process').exec;
 var treeKill = require('tree-kill');
 var stompConnector = require('stomp_msg_connector');
+var http = require('http');
+var express = require('express');
+var router = express.Router();
 
 var msgBroker = stompConnector.getBroker('mainMsgBroker');
 var config = stompConnector.getConfig();
@@ -10,8 +13,8 @@ var thisNode = config['node'];
 //console.log(JSON.stringify(thisNode));
 var MAX_NUM_TASKS_RUNNING_ALLOWED = thisNode.num_cpus;
 var __dbSettings = null;			// database settings
+var __nodeEnabled = true;			// node enabling flag
 var __leavePending = false;			// leave grig pending flag
-var __acceptingNewTasks = false;	// accepting new tasks flag
 var __numTasksRunning = 0;			// number of tasks that are currently running
 var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
 
@@ -179,7 +182,7 @@ function notifyDispatcherNodeIsClearToLeaveGrid() {
 }
 
 function checkToLeaveGrid() {
-	if (!__acceptingNewTasks && __leavePending && __numTasksRunning == 0) {
+	if (!__nodeEnabled && __leavePending && __numTasksRunning == 0) {
 		console.log('node is now clear to leave the grid');
 		notifyDispatcherNodeIsClearToLeaveGrid();
 	}	
@@ -202,16 +205,12 @@ function onNodeDisabled() {
 	checkToLeaveGrid();
 }
 
-// task queue handler
-module.exports['taskQueueMsgHandler'] = function(broker, message) {
-	console.log('got message: ' + [__acceptingNewTasks, __numTasksRunning]);
-	if (!__acceptingNewTasks || __numTasksRunning >= MAX_NUM_TASKS_RUNNING_ALLOWED) {
-		message.nack();	// not accepting this message let other node handle it
-	}
-	else {	// __acceptingNewTasks && __numTasksRunning < MAX_NUM_TASKS_RUNNING_ALLOWED
-		message.ack();
-		var task = JSON.parse(message.body);
-		task.node = thisNode.name;
+function handleDispatchedTasks(request, result) {
+	var tasks = request.body;
+	result.json({});
+	console.log('received a dispatch of ' + tasks.length + ' task(s)');
+	for (var i in tasks) {
+		var task = tasks[i];
 		__numTasksRunning++;
 		onNumTasksRunningChanged();
 		runTask(task, function() {
@@ -221,8 +220,24 @@ module.exports['taskQueueMsgHandler'] = function(broker, message) {
 	}
 }
 
+router.use(function timeLog(req, res, next) {
+	console.log('an incomming request @ /grid_task_launcher. Time: ', Date.now());
+	res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+	res.header("Pragma", "no-cache");
+	res.header("Expires", 0);
+	next();
+});
+
+router.post('/dispatched_tasks', handleDispatchedTasks);
+
+router.all('/', function(request, result) {
+	result.json(make_err_obj('bad request'));
+});
+
+module.exports.router = router;
+
 // topic handler
-module.exports['dispatcherMsgHandler'] = function(broker, message) {
+module.exports.dispatcherMsgHandler = function(broker, message) {
 	var o = JSON.parse(message.body);
 	if (!o.host) {	// host not specify => broadcast
 		switch(o.method) {
@@ -243,17 +258,16 @@ module.exports['dispatcherMsgHandler'] = function(broker, message) {
 					console.log(thisNode.name + " successfully join the grid");
 					__dbSettings = content["dbSettings"];
 					//console.log(JSON.stringify(__dbSettings));
-					__acceptingNewTasks = true;
 				}
 				break;
 			}
 			case 'nodeAcceptTasks': {
-				__acceptingNewTasks = content.accept;
-				if (__acceptingNewTasks)
+				__nodeEnabled = content.accept;
+				if (__nodeEnabled)
 					__leavePending = false;	// clear the leave pending flag
 				else	// not accepting new tasks
 					__leavePending = content.leaveGrid;
-				if (__acceptingNewTasks)
+				if (__nodeEnabled)
 					onNodeEnabled();
 				else
 					onNodeDisabled();
