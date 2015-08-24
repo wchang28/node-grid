@@ -204,9 +204,9 @@ function onNodeDisabled() {
 
 // task queue handler
 module.exports['taskQueueMsgHandler'] = function(broker, message) {
+	console.log('got message: ' + [__acceptingNewTasks, __numTasksRunning]);
 	if (!__acceptingNewTasks || __numTasksRunning >= MAX_NUM_TASKS_RUNNING_ALLOWED) {
-		;
-		//message.nack();	// not accepting this message let other node handle it
+		message.nack();	// not accepting this message let other node handle it
 	}
 	else {	// __acceptingNewTasks && __numTasksRunning < MAX_NUM_TASKS_RUNNING_ALLOWED
 		message.ack();
