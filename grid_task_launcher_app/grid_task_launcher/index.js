@@ -189,11 +189,10 @@ function handleDispatchedTasks(request, result) {
 	result.json({});
 	console.log('node received a dispatch of ' + tasks.length + ' task(s)');
 	console.log(JSON.stringify(tasks));
+	__numTasksRunning += tasks.length;
+	onNumTasksRunningChanged();
 	for (var i in tasks) {
-		var task = tasks[i];
-		__numTasksRunning++;
-		onNumTasksRunningChanged();
-		runTask(task, function() {
+		runTask(tasks[i], function() {
 			__numTasksRunning--;
 			onNumTasksRunningChanged();
 		});
