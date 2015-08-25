@@ -111,6 +111,48 @@
 				});
 			}
 		};
+		function enableNodeImpl(host, onDone) {
+			var url = $scope.dispatcherRootPathUrl + '/enable_node?node=' +  encodeURIComponent(host);
+			//console.log(url);
+			var res = $http.get(url);
+			res.success(function(data, status, headers, config) {
+				if (data.exception) {
+					if (typeof onDone === 'function') onDone(data.exception);
+				}
+				else {
+					if (typeof onDone === 'function') onDone(null);
+				}
+			});
+			res.error(function(data, status, headers, config) {
+				if (typeof onDone === 'function') onDone(data);
+			})				
+		};
+		$scope.enableNode = function(host) {
+			enableNodeImpl(host, function(err) {
+				if (err) alert(err.toString());
+			});
+		};
+		function disableNodeImpl(host, leaveGrid, onDone) {
+			var url = $scope.dispatcherRootPathUrl + '/disable_node?node=' +  encodeURIComponent(host) + '&leaveGrid=' + encodeURIComponent(leaveGrid.toString());
+			//console.log(url);
+			var res = $http.get(url);
+			res.success(function(data, status, headers, config) {
+				if (data.exception) {
+					if (typeof onDone === 'function') onDone(data.exception);
+				}
+				else {
+					if (typeof onDone === 'function') onDone(null);
+				}
+			});
+			res.error(function(data, status, headers, config) {
+				if (typeof onDone === 'function') onDone(data);
+			})				
+		};
+		$scope.disableNode = function(host, leaveGrid) {
+			disableNodeImpl(host, leaveGrid, function(err) {
+				if (err) alert(err.toString());
+			});
+		};
 		$scope.onBrokerMessage = function(message) {
 			if (message.body && message.body.length > 0) {
 				var msg = JSON.parse(message.body);

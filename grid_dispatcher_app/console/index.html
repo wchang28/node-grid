@@ -29,7 +29,7 @@
 		<div class="panel-heading">Grid Dashboard ({{dispatcherHostname}} - {{msgBrokerConnected ? 'Connected' : 'Not Connected !!!'}})</div>
 		<div class="panel-body">
 			<div class="row">
-				<div class="col-sm-8">
+				<div class="col-sm-9">
 					<div class="panel-group">
 						<div class="panel panel-success">
 							<div class="panel-heading">Nodes: {{nodesStatusView['num_nodes']}} node(s), {{nodesStatusView['total_cpus']-nodesStatusView['available_cpus']}}/{{nodesStatusView['total_cpus']}} = {{ ((nodesStatusView['total_cpus']-nodesStatusView['available_cpus'])*100.0/nodesStatusView['total_cpus']).toFixed(2) }}%</div>
@@ -43,9 +43,10 @@
 												<th>Port</th>
 												<th>Use IP</th>
 												<th>Enabled</th>
-												<th>Leave Pending</th>
-												<th>CPU Usage</th>
-												<th>Utilization</th>
+												<th>Leave P.</th>
+												<th>Usage</th>
+												<th>Util.</th>
+												<th>Actions</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -58,6 +59,7 @@
 												<td>{{ node.leavePending }}</td>
 												<td>{{ node.num_cpus - node.available_cpus}}/{{node.num_cpus }}</td>
 												<td>{{ ((node.num_cpus - node.available_cpus)*100.0/node.num_cpus).toFixed(2) }}%</td>
+												<td><a href="#" ng-click="enableNode(node.name)">Enable</a>, <a href="#" ng-click="disableNode(node.name, false)">Disable</a>, <a href="#" ng-click="disableNode(node.name, true)">Leave</a></td>
 											</tr>
 										</tbody>
 									</table>
@@ -101,7 +103,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="col-sm-4">
+				<div class="col-sm-3">
 					<div class="panel-group">
 						<div class="panel panel-warning">
 							<div class="panel-heading">Queue: {{queueStatusView['num_tasks_by_job'].length}} job(s), {{queueStatusView['num_tasks']}} task(s)</div>
