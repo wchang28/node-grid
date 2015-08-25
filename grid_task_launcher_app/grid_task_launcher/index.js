@@ -13,6 +13,7 @@ var thisNode = config['node'];
 //console.log(JSON.stringify(thisNode));
 var __dbSettings = config['db_conn'];	// database settings
 var __numTasksRunning = 0;				// number of tasks that are currently running
+var __exitAfterLeaveGrid = (typeof config['exitAfterLeaveGrid'] === 'boolean' ? config['exitAfterLeaveGrid'] : false);
 var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
 
 function task_toString(task) {return 'task{' + task.job_id + ',' + task.index + '}';}
@@ -172,13 +173,6 @@ function replyPing() {
 	});	
 }
 
-function notifyDispatcherNodeIsClearToLeaveGrid() {
-	var o = {method: 'nodeIsClearToLeaveGrid', content:{host: thisNode.name}};
-	msgBroker.send(taskLauncherToDispatcherQueue, {persistence: true}, JSON.stringify(o), function(recepit_id) {
-		console.log('nodeIsClearToLeaveGrid message sent successfully. recepit_id=' + recepit_id);
-	});	
-}
-
 function onNumTasksRunningChanged() {
 	console.log('numTasksRunning=' + __numTasksRunning);
 	if (__numTasksRunning == 0)	console.log('node is idle');
@@ -239,6 +233,10 @@ module.exports.dispatcherMsgHandler = function(broker, message) {
 			}
 			case "nodeGridLeave": {
 				console.log('LEAVE: ' + thisNode.name + " successfully leave the grid");
+				if (__exitAfterLeaveGrid) {
+					console.log('program exiting...');
+					process.exit(0);
+				}
 				break;
 			}
 			case "nodeKillProcesses": {

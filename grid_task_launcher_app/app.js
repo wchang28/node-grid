@@ -7,7 +7,19 @@ var stompConnector = require('stomp_msg_connector');
 var os = require("os");
 
 var MAIN_HANDLER_PATH = "/grid_task_launcher";
+var REQUIRED_SQL_KEYS = ["GetTaskDetail", "MarkTaskStart" ,"MarkTaskEnd"];
 
+// argv[2] is config file
+if (process.argv.length < 3) {
+	console.error('config file is not optional');
+	process.exit(1);
+}
+var gridConfigFilePath = process.argv[2];
+console.log('grid config file path: ' + gridConfigFilePath);
+var config = JSON.parse(fs.readFileSync(gridConfigFilePath, 'utf8'));
+
+// determine the IPv4 address to use
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 var interfaces = os.networkInterfaces();
 var addresses = [];
 for (var k in interfaces) {
@@ -19,21 +31,59 @@ for (var k in interfaces) {
     }
 }
 var ipAddress = null;
-if (addresses.length > 0)
-	ipAddress = addresses[0];
-else {
-	console.error('no local ip address');
+if (addresses.length > 0) {
+	var interfaceIndex = 0;
+	if (addresses.length > 1) {	// multiple IPv4 address (multi-home/multiple network adaptor)
+		console.log('deletected multiple IPv4 interfaces: ' + JSON.stringify(addresses));
+		interfaceIndex = config['IPv4InterfaceIndex']
+		if (typeof interfaceIndex !== 'number' || interfaceIndex < 0 || interfaceIndex >= addresses.length) {
+			console.error('must specified a valid IPv4 interface index from range [0, ' + addresses.length +  ') in config file');
+			process.exit(1);
+		}
+	}
+	ipAddress = addresses[interfaceIndex];
+	console.log('IPv4 address selected: ' + ipAddress);
+} else {	// no IPv4 address
+	console.error('no local IPv4 address detected');
 	process.exit(1);
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// argv[2] is config file
-if (process.argv.length < 3) {
-	console.error('config file is not optional');
+// configure the node object
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+if (typeof config["dispatchPort"] != 'number' || config["dispatchPort"] <= 0) {
+	console.error('dispatchPort not specified in config file');
 	process.exit(1);
 }
-var gridConfigFilePath = process.argv[2];
-console.log('grid config file path: ' + gridConfigFilePath);
-var config = JSON.parse(fs.readFileSync(gridConfigFilePath, 'utf8'));
+if (typeof config["availableCPUs"] != 'number' || config["availableCPUs"] <= 0) {
+	console.error('availableCPUs not specified in config file');
+	process.exit(1);
+}
+config["node"] =
+{
+	name: os.hostname()
+	,ip: ipAddress
+	,port: config["dispatchPort"]
+	,use_ip: (typeof config["dispatchUseIP"] === 'boolean' ? config["dispatchUseIP"] : true);
+	,num_cpus: config["availableCPUs"]
+};
+console.log("node: " + JSON.stringify(config["node"]));
+delete config['dispatchPort'];
+delete config['dispatchUseIP'];
+delete config['availableCPUs'];
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// configure the message broker
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+if (!config['msgBroker']) {
+	console.error('msgBroker not specified in config');
+	process.exit(1);
+}
+var dispatcherToTaskLauncherTopic = config["dispatcherToTaskLauncherTopic"];
+if (typeof dispatcherToTaskLauncherTopic !== 'string' || dispatcherToTaskLauncherTopic.length == 0) {
+	console.error('dispatcherToTaskLauncherTopic not specified in config file');
+	process.exit(1);
+}
 config['brokers'] = {};
 config['brokers']['mainMsgBroker'] = config['msgBroker'];
 delete config['msgBroker'];
@@ -41,22 +91,38 @@ var mainBrokerConfig = config["brokers"]["mainMsgBroker"];
 mainBrokerConfig["processors"] = {};
 mainBrokerConfig["processors"]["topicProcessor"] =
 {
-	"incoming": config["dispatcherToTaskLauncherTopic"]
+	"incoming": dispatcherToTaskLauncherTopic
 	,"handler_path": __dirname + MAIN_HANDLER_PATH
 	,"handler_key": "dispatcherMsgHandler"
 };
-// configure the node object
-config["node"] =
-{
-	name: os.hostname()
-	,ip: ipAddress
-	,port: config["dispatchPort"]
-	,use_ip: config["dispatchUseIP"]
-	,num_cpus: config["availableCPUs"]
-};
-delete config['dispatchPort'];
-delete config['dispatchUseIP'];
-delete config['availableCPUs'];
+var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
+if (typeof taskLauncherToDispatcherQueue !== 'string' || taskLauncherToDispatcherQueue.length == 0) {
+	console.error('taskLauncherToDispatcherQueue not specified in config file');
+	process.exit(1);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// check database settings
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+var dbSettings = config['db_conn'];
+if (!dbSettings) {
+	console.error('db configuration not specified in config');
+	process.exit(1);
+}
+
+if (typeof dbSettings.conn_str !== 'string' || dbSettings.conn_str.length == 0) {
+	console.error('db connection string not specified in config');
+	process.exit(1);
+}
+
+for (var i in REQUIRED_SQL_KEYS) {
+	var sqlKey = REQUIRED_SQL_KEYS[i];
+	if (!dbSettings.sqls || typeof dbSettings.sqls[sqlKey] !== 'string' || dbSettings.sqls[sqlKey].length == 0) {
+		console.error('sql key ' + sqlKey + ' not specified in config');
+		process.exit(1);
+	}
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //console.log("===============================================");
 //console.log(JSON.stringify(config));
