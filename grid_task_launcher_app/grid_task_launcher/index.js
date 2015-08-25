@@ -12,8 +12,6 @@ var config = stompConnector.getConfig();
 var thisNode = config['node'];
 //console.log(JSON.stringify(thisNode));
 var __dbSettings = config['db_conn'];	// database settings
-var __nodeEnabled = true;				// node enabling flag
-var __leavePending = false;				// leave grig pending flag
 var __numTasksRunning = 0;				// number of tasks that are currently running
 var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
 
@@ -181,28 +179,10 @@ function notifyDispatcherNodeIsClearToLeaveGrid() {
 	});	
 }
 
-function checkToLeaveGrid() {
-	if (!__nodeEnabled && __leavePending && __numTasksRunning == 0) {
-		console.log('node is now clear to leave the grid');
-		notifyDispatcherNodeIsClearToLeaveGrid();
-	}	
-}
-
 function onNumTasksRunningChanged() {
 	console.log('numTasksRunning=' + __numTasksRunning);
 	if (__numTasksRunning == 0) {
 		console.log('node is idle');
-		checkToLeaveGrid();
-	}
-}
-
-function onNodeEnabled() {
-	console.log("node enabled");
-}
-
-function onNodeDisabled() {
-	console.log("node disabled, __leavePending=" + __leavePending);
-	checkToLeaveGrid();
 }
 
 function handleDispatchedTasks(request, result) {
@@ -256,19 +236,11 @@ module.exports.dispatcherMsgHandler = function(broker, message) {
 					process.exit(1);
 				}
 				else
-					console.log(thisNode.name + " successfully join the grid");
+					console.log('JOIN: ' + thisNode.name + " successfully join the grid");
 				break;
 			}
-			case 'nodeAcceptTasks': {
-				__nodeEnabled = content.accept;
-				if (__nodeEnabled)
-					__leavePending = false;	// clear the leave pending flag
-				else	// not accepting new tasks
-					__leavePending = content.leaveGrid;
-				if (__nodeEnabled)
-					onNodeEnabled();
-				else
-					onNodeDisabled();
+			case "nodeGridLeave": {
+				console.log('LEAVE: ' + thisNode.name + " successfully leave the grid");
 				break;
 			}
 			case "nodeKillProcesses": {
