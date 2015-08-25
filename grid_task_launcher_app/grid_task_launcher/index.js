@@ -181,8 +181,7 @@ function notifyDispatcherNodeIsClearToLeaveGrid() {
 
 function onNumTasksRunningChanged() {
 	console.log('numTasksRunning=' + __numTasksRunning);
-	if (__numTasksRunning == 0) {
-		console.log('node is idle');
+	if (__numTasksRunning == 0)	console.log('node is idle');
 }
 
 function handleDispatchedTasks(request, result) {
