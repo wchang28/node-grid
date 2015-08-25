@@ -64,7 +64,7 @@ config["node"] =
 	name: os.hostname()
 	,ip: ipAddress
 	,port: config["dispatchPort"]
-	,use_ip: (typeof config["dispatchUseIP"] === 'boolean' ? config["dispatchUseIP"] : true);
+	,use_ip: (typeof config["dispatchUseIP"] === 'boolean' ? config["dispatchUseIP"] : true)
 	,num_cpus: config["availableCPUs"]
 };
 console.log("node: " + JSON.stringify(config["node"]));
