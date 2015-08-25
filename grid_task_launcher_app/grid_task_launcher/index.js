@@ -11,11 +11,10 @@ var msgBroker = stompConnector.getBroker('mainMsgBroker');
 var config = stompConnector.getConfig();
 var thisNode = config['node'];
 //console.log(JSON.stringify(thisNode));
-var MAX_NUM_TASKS_RUNNING_ALLOWED = thisNode.num_cpus;
-var __dbSettings = null;			// database settings
-var __nodeEnabled = true;			// node enabling flag
-var __leavePending = false;			// leave grig pending flag
-var __numTasksRunning = 0;			// number of tasks that are currently running
+var __dbSettings = config['db_conn'];	// database settings
+var __nodeEnabled = true;				// node enabling flag
+var __leavePending = false;				// leave grig pending flag
+var __numTasksRunning = 0;				// number of tasks that are currently running
 var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
 
 function task_toString(task) {return 'task{' + task.job_id + ',' + task.index + '}';}
@@ -256,11 +255,8 @@ module.exports.dispatcherMsgHandler = function(broker, message) {
 					console.error('!!! Error: ' + o.content.exception.toString());
 					process.exit(1);
 				}
-				else {
+				else
 					console.log(thisNode.name + " successfully join the grid");
-					__dbSettings = content["dbSettings"];
-					//console.log(JSON.stringify(__dbSettings));
-				}
 				break;
 			}
 			case 'nodeAcceptTasks': {

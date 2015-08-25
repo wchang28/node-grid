@@ -74,21 +74,20 @@ p.on('broker_connected', function (event) {
 	console.log(event.broker_name + ': connected to the msg broker ' + event.broker_url);
 }).on('ready', function () {
 	console.log('messaging service is READY');
-	
+	// setup the main app route
 	var gridTaskLauncherRoutes = require(__dirname + MAIN_HANDLER_PATH).router;
 	app.use(MAIN_HANDLER_PATH, gridTaskLauncherRoutes);
-
+	// launch the web server
 	var server = http.createServer(app);
-
 	server.listen(config.node.port, function() {
 		var host = server.address().address;
 		var port = server.address().port;
 		console.log('task launcher server listening at %s://%s:%s', 'http', host, port);
-	});
-
-	var msgBroker = stompConnector.getBroker('mainMsgBroker');
-	var o = {method: 'nodeRequestToJoinGrid', content: {node: config["node"]}};
-	msgBroker.send(config['taskLauncherToDispatcherQueue'], {persistence: true}, JSON.stringify(o), function(recepit_id) {
-		console.log('nodeRequestToJoinGrid message sent successfully. recepit_id=' + recepit_id);
+		// try to join the grid
+		var msgBroker = stompConnector.getBroker('mainMsgBroker');
+		var o = {method: 'nodeRequestToJoinGrid', content: {node: config["node"]}};
+		msgBroker.send(config['taskLauncherToDispatcherQueue'], {persistence: true}, JSON.stringify(o), function(recepit_id) {
+			console.log('nodeRequestToJoinGrid message sent successfully. recepit_id=' + recepit_id);
+		});
 	});
 });
