@@ -5,25 +5,27 @@
 		,"certificate_file": "@@CeritficateFilepath@@"
 		,"ca_files": ["@@CACertificateFilepath1@@", "@@CACertificateFilepath2@@", "..."]
 	}
-	,"msg_broker":
+	,"msgBroker":
 	{
 		"url": "@@MsgBrokerUrl@@"
-		,"urlClient": "@@MsgBrokerClientUrl@@"
-		,"broker_options":
+		,"brokerOptions":
 		{
 			"reconnectIntervalMS": 10000
 			,"outgoingHeartBeatMS": 10000
 			,"heartBeatScaleFactor": 0.8
 		}
-		,"login_options":
+		,"loginOptions":
 		{
 			"login": "@@MsgBrokerUserName@@"
 			,"passcode": "@@MsgBrokerPassword@@"
 		}
-		,"event_topic": "/topic/grid_events"
+		,"show_heart_beat": false
+		,"debug": false
 	}
-	,"task_monitor_port": 278
-	,"launcher_url_home_path": "/grid_task_launcher/"
+	,"consoleBrowserClient":
+	{
+		"brokerUrl": "@@BrowserClientMsgBrokerUrl@@"
+	}
 	,"db_conn":
 	{
 		"conn_str": "Driver={SQL Server Native Client 11.0};Server={@@DBServer@@};Database={@@Database@@};Uid=@@Username@@;Pwd=@@Password@@;Trusted_Connection=yes;"
@@ -33,15 +35,8 @@
 			,"GetJobStatus":		"exec [dbo].[stp_NodeJSGridGetJobStatus] @job_id=?"
 			,"AbortJob":			"exec [dbo].[stp_NodeJSGridAbortJob] @job_id=?"
 			,"GetJobRunningTasks":	"exec [dbo].[stp_NodeJSGridGetJobRunningTasks] @job_id=?"
-			,"GetTaskDetail":		"exec [dbo].[stp_NodeJSGridJobTask] @job_id=?, @task_index=?, @node=?"
-			,"MarkTaskStart":		"exec [dbo].[stp_NodeJSGridJobTask] @job_id=?, @task_index=?, @pid=?"
-			,"MarkTaskEnd":			"exec [dbo].[stp_NodeJSGridJobTask] @job_id=?, @task_index=?, @pid=?, @ret_code=?, @stdout=?, @stderr=?"
 			,"GetJobResult":		"exec [dbo].[stp_NodeJSGridGetJobResult] @job_id=?"
 			,"GetLatestJobsStatus":	"exec [dbo].[stp_NodeJSGridGetLatestJobsStatus]"
 		}
-	}
-	,"nodes":
-	{
-		"@@MyNode1@@": {"ip": "@@MyNode1IPAddress@@", "num_cpus": 6, "port": 277, "use_ip": true, "description": "@@MyNode1@@"}
 	}
 }
