@@ -112,6 +112,23 @@ function handleSubmitJob(request, result) {
 	}
 }
 
+function handleEnqueueTasks(request, result) {
+	function onFinalError(err) {
+		console.log('!!! Error: ' + err.toString());
+		result.json(make_err_obj(err));
+	}
+	function onFinalReturn() {
+		result.json({});
+	}
+	try {
+		var tasks = request.body;
+		dispatcher.enqueueTasks(tasks);
+		onFinalReturn();
+	} catch(e) {
+		onFinalError(e);
+	}	
+}
+
 function getJobIdFromRequest(request, onDone) {
 	if (!request.query || !request.query.job_id) {
 		if (typeof onDone === 'function') onDone('bad job id', null);
@@ -273,6 +290,7 @@ router.use(function timeLog(req, res, next) {
 }); 
  
 router.post('/submit_job', handleSubmitJob);
+router.post('/enqueue_tasks', handleEnqueueTasks);
 router.get('/kill_job', handleKillJob);
 router.get('/get_job_progress', handleGetJobProgress); 
 router.get('/get_job_result', handleGetJobResult);
