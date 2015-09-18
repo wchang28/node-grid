@@ -176,6 +176,9 @@
 					case "REFRESH_DASHBOARD_APP":
 						location.reload(true);
 						break;
+					case "ON_ERROR":
+						console.log(JSON.stringify(msg));
+						break;
 				}
 				$scope.$apply();
 			}

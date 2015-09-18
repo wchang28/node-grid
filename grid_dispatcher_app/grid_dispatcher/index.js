@@ -15,6 +15,26 @@ var msgBroker = stompConnector.getBroker('mainMsgBroker');
 var dispatcher = new Dispatcher(msgBroker, config["dispatcherToTaskLauncherTopic"], config.db_conn);
 var eventTopic = config["eventTopic"];
 
+if (!Date.prototype.formatXMLDataTime) {
+	Date.prototype.formatXMLDataTime = function () {
+		function pad0_2(i) { return (i < 10 ? '0' + i : i.toString()); }
+		function mil(ms) {
+			var s = '';
+			if (ms > 0) {
+				s += '.';
+				s += (ms < 10 ? '00' : ms < 100 ? '0' : '') + ms.toString();
+				if (ms % 100 == 0)
+					s = s.substr(0, s.length - 2);
+				else if (ms % 10 == 0)
+					s = s.substr(0, s.length - 1);
+			}
+			return s;
+		}
+		var m = this.getUTCMonth() + 1;
+		return '' + this.getUTCFullYear() + '-' + pad0_2(m) + '-' + pad0_2(this.getUTCDate()) + 'T' + pad0_2(this.getUTCHours()) + ':' + pad0_2(this.getUTCMinutes()) + ':' + pad0_2(this.getUTCSeconds()) + mil(this.getUTCMilliseconds()) + 'Z';
+	};
+}
+
 // hookup the dispatcher events
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 dispatcher.onNodesStatusChanged = function (event) {
@@ -47,6 +67,15 @@ dispatcher.onJobRemovedFromTracking = function (job_id) {
 };
 dispatcher.onTaskCompleted = function (task) {
 	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_TASK_COMPLETED', content:task}),function(receipt_id) {});
+};
+dispatcher.onError = function(err) {
+	console.error("!!! Error: " + err.toString());
+	var content = {
+		"source": "DISPATCHER"
+		,"time": new Date().formatXMLDataTime()
+		,"msg": err.toString()
+	};
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_ERROR', content:content}),function(receipt_id) {});
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -22,6 +22,9 @@
 		,"show_heart_beat": false
 		,"debug": false
 	}
+	,"taskLauncherToDispatcherQueue": "/queue/grid_task_launcher_to_dispatcher"
+	,"dispatcherToTaskLauncherTopic": "/topic/grid_dispatcher_to_task_launcher"
+	,"eventTopic": "/topic/grid_events"
 	,"consoleBrowserClient":
 	{
 		"brokerUrl": "@@BrowserClientMsgBrokerUrl@@"

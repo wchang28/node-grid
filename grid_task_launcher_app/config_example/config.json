@@ -22,6 +22,7 @@
 	}
 	,"taskLauncherToDispatcherQueue": "/queue/grid_task_launcher_to_dispatcher"
 	,"dispatcherToTaskLauncherTopic": "/topic/grid_dispatcher_to_task_launcher"
+	,"eventTopic": "/topic/grid_events"
 	,"db_conn":
 	{
 		"conn_str": "Driver={SQL Server Native Client 11.0};Server={@@DBServer@@};Database={@@Database@@};Uid=@@Username@@;Pwd=@@Password@@;Trusted_Connection=yes;"

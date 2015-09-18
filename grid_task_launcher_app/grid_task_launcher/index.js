@@ -15,9 +15,46 @@ var __dbSettings = config['db_conn'];	// database settings
 var __numTasksRunning = 0;				// number of tasks that are currently running
 var __exitAfterLeaveGrid = (typeof config['exitAfterLeaveGrid'] === 'boolean' ? config['exitAfterLeaveGrid'] : false);
 var taskLauncherToDispatcherQueue = config['taskLauncherToDispatcherQueue'];
+var eventTopic = config['eventTopic'];
 
+if (!Date.prototype.formatXMLDataTime) {
+	Date.prototype.formatXMLDataTime = function () {
+		function pad0_2(i) { return (i < 10 ? '0' + i : i.toString()); }
+		function mil(ms) {
+			var s = '';
+			if (ms > 0) {
+				s += '.';
+				s += (ms < 10 ? '00' : ms < 100 ? '0' : '') + ms.toString();
+				if (ms % 100 == 0)
+					s = s.substr(0, s.length - 2);
+				else if (ms % 10 == 0)
+					s = s.substr(0, s.length - 1);
+			}
+			return s;
+		}
+		var m = this.getUTCMonth() + 1;
+		return '' + this.getUTCFullYear() + '-' + pad0_2(m) + '-' + pad0_2(this.getUTCDate()) + 'T' + pad0_2(this.getUTCHours()) + ':' + pad0_2(this.getUTCMinutes()) + ':' + pad0_2(this.getUTCSeconds()) + mil(this.getUTCMilliseconds()) + 'Z';
+	};
+}
+	
 function task_toString(task) {return 'task{' + task.job_id + ',' + task.index + '}';}
 function make_err_obj(err) {return {exception: err.toString()};}
+
+function taskLauncherOnError(task, err) {
+	var msg;
+	if (task)
+		msg = thisNode.name + ': task launcher error for ' + task_toString(task) + ": " + err.toString();
+	else
+		msg = thisNode.name + ': task launcher error: ' + err.toString();
+	console.error('!!! ' + msg);
+	
+	var content = {
+		"source": thisNode.name
+		,"time": new Date().formatXMLDataTime()
+		,"msg": msg
+	};
+	msgBroker.send(eventTopic, {persistent: true}, JSON.stringify({method: 'ON_ERROR', content:content}),function(receipt_id) {});
+}
 
 // Get the task info from the database so it can be launched.
 // At the same time, mark the task as being 'DISPATCHED' to the node.
@@ -49,8 +86,9 @@ function getJobTaskInfoDB(conn_str, sql, task, onDone) {
 }
 
 // mark task as 'RUNNING' in the database
-function markTaskStartDB(conn_str, sql, task) {
+function markTaskStartDB(conn_str, sql, task, onDone) {
 	sqlserver.query(conn_str, sql, [task.job_id, task.index, task.pid], function(err, dataTable) {
+		if (typeof onDone === 'function') onDone(err);
 		console.log(task_toString(task) + " start marked");
 	});
 }
@@ -93,14 +131,21 @@ function notifyDispatcherOnTaskFinished(task) {
 	});
 }
 
-function markTaskStart(task) {markTaskStartDB(__dbSettings.conn_str, __dbSettings.sqls['MarkTaskStart'], task);}
+function markTaskStart(task) {
+	markTaskStartDB(__dbSettings.conn_str, __dbSettings.sqls['MarkTaskStart'], task, function(err) {
+		if (!err)
+			console.log(task_toString(task) + " start marked");
+		else 
+			taskLauncherOnError(task, err);
+	});
+}
 function markTaskFinished(task, stdout, stderr, onDone) {markTaskFinishedDB(__dbSettings.conn_str, __dbSettings.sqls['MarkTaskEnd'], task, stdout, stderr, onDone);}
 
 function runTask(task, onDone) {
 	function onExit(err) {
 		notifyDispatcherOnTaskFinished(task);	
 		if (err)
-			console.error('!!! Error: ' + err.toString());
+			taskLauncherOnError(task, err);
 		else
 			console.log(task_toString(task) + " finished running");
 		if (typeof onDone === 'function') onDone();
@@ -224,7 +269,7 @@ module.exports.dispatcherMsgHandler = function(broker, message) {
 		switch(o.method) {
 			case "nodeRequestToJoinGrid": {
 				if (content.exception) {
-					console.error('!!! Error: ' + o.content.exception.toString());
+					taskLauncherOnError(null, o.content.exception);
 					process.exit(1);
 				}
 				else
