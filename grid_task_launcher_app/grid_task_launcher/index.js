@@ -89,7 +89,6 @@ function getJobTaskInfoDB(conn_str, sql, task, onDone) {
 function markTaskStartDB(conn_str, sql, task, onDone) {
 	sqlserver.query(conn_str, sql, [task.job_id, task.index, task.pid], function(err, dataTable) {
 		if (typeof onDone === 'function') onDone(err);
-		console.log(task_toString(task) + " start marked");
 	});
 }
 
