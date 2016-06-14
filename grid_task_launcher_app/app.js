@@ -59,12 +59,15 @@ if (typeof config["availableCPUs"] != 'number' || config["availableCPUs"] <= 0) 
 	console.error('availableCPUs not specified in config file');
 	process.exit(1);
 }
+
+var use_ip = (typeof config["dispatchUseIP"] === 'boolean' ? config["dispatchUseIP"] : true);
+
 config["node"] =
 {
-	name: os.hostname()
+	name: (use_ip ? ipAddress : os.hostname())
 	,ip: ipAddress
 	,port: config["dispatchPort"]
-	,use_ip: (typeof config["dispatchUseIP"] === 'boolean' ? config["dispatchUseIP"] : true)
+	,use_ip: use_ip
 	,num_cpus: config["availableCPUs"]
 };
 console.log("node: " + JSON.stringify(config["node"]));
